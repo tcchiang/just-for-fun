@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Candy Match 3.1</title>
+<style>
+  :root{
+    --bg1:#fff7fc;
+    --bg2:#edf6ff;
+    --panel:#ffffffd9;
+    --panel-border:#ffffff;
+    --text:#5f4a69;
+    --pink:#ff6fa9;
+    --blue:#7b8dff;
+    --gold:#ffc94d;
+    --green:#56c67c;
+    --shadow:0 14px 34px rgba(116,86,145,.18);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 18% 18%, #ffe0f0 0, transparent 23%),
+      radial-gradient(circle at 83% 16%, #def1ff 0, transparent 23%),
+      radial-gradient(circle at 15% 82%, #f5e6ff 0, transparent 20%),
+      linear-gradient(135deg, var(--bg1), var(--bg2));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+  }
+  .app{
+    width:min(1180px,100%);
+    display:grid;
+    grid-template-columns:350px 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  .panel,.board-panel{
+    background:var(--panel);
+    border:2px solid var(--panel-border);
+    border-radius:26px;
+    backdrop-filter: blur(10px);
+    box-shadow:var(--shadow);
+  }
+  .panel{
+    padding:20px;
+  }
+  .board-panel{
+    padding:16px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+  h1{
+    margin:0 0 8px;
+    font-size:2rem;
+    line-height:1.05;
+  }
+  .subtitle{
+    font-size:.95rem;
+    opacity:.82;
+    margin-bottom:14px;
+  }
+  .stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .card{
+    background:#fff;
+    border-radius:18px;
+    padding:12px 14px;
+    box-shadow:0 8px 18px rgba(130,110,160,.10);
+  }
+  .label{
+    font-size:.82rem;
+    opacity:.72;
+    margin-bottom:6px;
+  }
+  .value{
+    font-size:1.58rem;
+    font-weight:800;
+    line-height:1.1;
+  }
+  .status-card,
+  .mission-card,
+  .config-card{
+    margin-top:12px;
+  }
+  .status-card .value{
+    font-size:1.08rem;
+    color:#7d63d9;
+  }
+  .mission-main{
+    font-size:1rem;
+    font-weight:800;
+    color:#6f51c8;
+    margin-bottom:6px;
+  }
+  .mission-sub{
+    font-size:.93rem;
+    line-height:1.55;
+    opacity:.95;
+  }
+  .buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:10px;
+    margin-top:12px;
+  }
+  button{
+    border:none;
+    border-radius:16px;
+    padding:11px 10px;
+    font-size:.98rem;
+    font-weight:800;
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    box-shadow:0 8px 18px rgba(110,90,130,.14);
+  }
+  button:hover{transform:translateY(-1px)}
+  button:active{transform:translateY(1px) scale(.98)}
+  .btn-primary{background:linear-gradient(135deg,#ff8fc4,#ff6fa9);color:#fff}
+  .btn-secondary{background:linear-gradient(135deg,#94a8ff,#7b8dff);color:#fff}
+  .btn-gold{background:linear-gradient(135deg,#ffd96d,#ffc543);color:#7b4e00}
+  .section-title{
+    font-size:.95rem;
+    font-weight:800;
+    margin-bottom:8px;
+    color:#7b57c8;
+  }
+  .option-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .chip{
+    border:2px solid #e7ddff;
+    background:#fff;
+    color:#6a5684;
+    border-radius:999px;
+    padding:8px 12px;
+    font-weight:700;
+    font-size:.9rem;
+    cursor:pointer;
+    user-select:none;
+  }
+  .chip.active{
+    background:linear-gradient(135deg,#8fa3ff,#7b8dff);
+    color:#fff;
+    border-color:transparent;
+  }
+  .chip.small{
+    padding:7px 10px;
+    font-size:.88rem;
+  }
+  .inline{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  input[type="number"]{
+    width:90px;
+    border:none;
+    outline:none;
+    background:#f6f7ff;
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:1rem;
+    color:#5d4f76;
+    box-shadow: inset 0 0 0 2px #ece8ff;
+  }
+  .legend,.note{
+    background:#fff;
+    border-radius:18px;
+    padding:12px 14px;
+    box-shadow:0 8px 18px rgba(130,110,160,.08);
+    margin-top:12px;
+  }
+  .legend{
+    font-size:.9rem;
+    line-height:1.7;
+  }
+  .legend strong{color:#864db2}
+  .note{
+    font-size:.88rem;
+    line-height:1.6;
+  }
+  .msg{
+    min-height:28px;
+    margin-top:12px;
+    font-weight:800;
+    color:#8d60db;
+  }
+  .apply-btn{
+    width:100%;
+    margin-top:10px;
+    background:linear-gradient(135deg,#67d68d,#49c672);
+    color:#fff;
+  }
+  canvas{
+    width:min(720px,100%);
+    height:auto;
+    display:block;
+    border-radius:24px;
+    touch-action:none;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,.40), transparent 18%),
+      linear-gradient(180deg,#fff9fd,#f4f7ff);
+    box-shadow:
+      inset 0 3px 12px rgba(255,255,255,.95),
+      inset 0 -8px 20px rgba(170,180,245,.16);
+  }
+  @media (max-width: 980px){
+    .app{grid-template-columns:1fr}
+    .panel{order:2}
+    .board-panel{order:1}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>🍬 Candy Match</h1>
+    <div class="subtitle">3.0 + 3.1｜關卡版 + 改良盤面生成</div>
+
+    <div class="stats">
+      <div class="card">
+        <div class="label">Score</div>
+        <div class="value" id="score">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Moves Left</div>
+        <div class="value" id="moves">20</div>
+      </div>
+      <div class="card">
+        <div class="label">Best</div>
+        <div class="value" id="best">0</div>
+      </div>
+      <div class="card">
+        <div class="label">Combo</div>
+        <div class="value" id="combo">0</div>
+      </div>
+    </div>
+
+    <div class="card status-card">
+      <div class="label">Status</div>
+      <div class="value" id="status">準備開始</div>
+    </div>
+
+    <div class="card mission-card">
+      <div class="label">Mission</div>
+      <div class="mission-main" id="missionMain">Free Play</div>
+      <div class="mission-sub" id="missionSub">自由模式：盡量拿高分。</div>
+    </div>
+
+    <div class="card config-card">
+      <div class="section-title">Game Mode</div>
+      <div class="option-row" id="modeRow">
+        <div class="chip active" data-mode="free">Free Play</div>
+        <div class="chip" data-mode="score">Score Mission</div>
+        <div class="chip" data-mode="color">Color Mission</div>
+        <div class="chip" data-mode="special">Special Mission</div>
+      </div>
+
+      <div class="section-title">Moves</div>
+      <div class="option-row" id="movesRow">
+        <div class="chip small" data-moves="15">15</div>
+        <div class="chip small active" data-moves="20">20</div>
+        <div class="chip small" data-moves="30">30</div>
+        <div class="chip small" data-moves="custom">Custom</div>
+      </div>
+
+      <div class="inline" id="customMoveBox" style="display:none; margin-bottom:10px;">
+        <span style="font-weight:700;">Custom moves</span>
+        <input id="customMovesInput" type="number" min="5" max="99" value="25">
+      </div>
+
+      <button class="apply-btn" id="applyConfigBtn">Start New Level</button>
+    </div>
+
+    <div class="buttons">
+      <button class="btn-primary" id="restartBtn">Restart</button>
+      <button class="btn-secondary" id="shuffleBtn">Shuffle</button>
+      <button class="btn-gold" id="hintBtn">Hint</button>
+    </div>
+
+    <div class="legend">
+      <div><strong>三消</strong>：普通消除</div>
+      <div><strong>四消</strong>：條紋糖（整行 / 整列）</div>
+      <div><strong>五消直線</strong>：彩虹糖</div>
+      <div><strong>T / L 形</strong>：包裝糖（3×3 爆炸）</div>
+      <div><strong>Mission</strong>：完成任務會直接過關</div>
+    </div>
+
+    <div class="note">
+      操作：點兩顆相鄰糖果交換，或拖曳 / 手機滑動。<br>
+      盤面生成會盡量保證：<br>
+      1. 開局沒有自動三消<br>
+      2. 有足夠合法步數<br>
+      3. 顏色分布較合理
+    </div>
+
+    <div class="msg" id="message"></div>
+  </div>
+
+  <div class="board-panel">
+    <canvas id="gameCanvas" width="680" height="680"></canvas>
+  </div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const BOARD = 8;
+  const CELL = 80;
+  const PAD = 20;
+  const INNER = BOARD * CELL;
+  canvas.width = PAD * 2 + INNER;
+  canvas.height = PAD * 2 + INNER;
+
+  const TYPES = 6;
+  const DEFAULT_MOVES = 20;
+
+  const SPECIAL = {
+    NONE: 'none',
+    STRIPED_H: 'striped_h',
+    STRIPED_V: 'striped_v',
+    WRAPPED: 'wrapped',
+    COLOR_BOMB: 'color_bomb'
+  };
+
+  const COLORS = [
+    '#ff5f8f',
+    '#4db6ff',
+    '#ffd34d',
+    '#62d26f',
+    '#b07cff',
+    '#ff9654'
+  ];
+
+  const COLOR_NAMES = [
+    'Pink', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'
+  ];
+
+  const state = {
+    board: [],
+    score: 0,
+    moves: DEFAULT_MOVES,
+    combo: 0,
+    best: Number(localStorage.getItem('candyMatchBest31') || 0),
+    status: '準備開始',
+    message: '',
+    selected: null,
+    hintCells: null,
+    isBusy: false,
+    isGameOver: false,
+    isWin: false,
+    particles: [],
+    floatingTexts: [],
+    pointerDown: null,
+    boardShake: 0,
+    lastTime: performance.now(),
+
+    config: {
+      mode: 'free',
+      movesPreset: 20,
+      movesCustom: 25
+    },
+
+    mission: null
+  };
+
+  function updateUI() {
+    document.getElementById('score').textContent = state.score;
+    document.getElementById('moves').textContent = state.moves;
+    document.getElementById('combo').textContent = state.combo;
+    document.getElementById('best').textContent = state.best;
+    document.getElementById('status').textContent = state.status;
+    document.getElementById('message').textContent = state.message;
+
+    const mission = state.mission;
+    const main = document.getElementById('missionMain');
+    const sub = document.getElementById('missionSub');
+
+    if (!mission || mission.type === 'free') {
+      main.textContent = 'Free Play';
+      sub.textContent = '自由模式：盡量拿高分。';
+      return;
+    }
+
+    if (mission.type === 'score') {
+      main.textContent = `Score Mission`;
+      sub.textContent = `${state.score} / ${mission.target}`;
+    } else if (mission.type === 'color') {
+      main.textContent = `${COLOR_NAMES[mission.color]} Mission`;
+      sub.textContent = `${mission.progress} / ${mission.target} ${COLOR_NAMES[mission.color]} candies`;
+    } else if (mission.type === 'special') {
+      main.textContent = `Special Mission`;
+      sub.textContent = `${mission.progress} / ${mission.target} striped candies`;
+    }
+  }
+
+  function setStatus(msg) {
+    state.status = msg;
+    updateUI();
+  }
+
+  function setMessage(msg) {
+    state.message = msg;
+    updateUI();
+  }
+
+  function randInt(n) {
+    return Math.floor(Math.random() * n);
+  }
+
+  function inBounds(r, c) {
+    return r >= 0 && r < BOARD && c >= 0 && c < BOARD;
+  }
+
+  function cellToPixel(r, c) {
+    return {
+      x: PAD + c * CELL + CELL / 2,
+      y: PAD + r * CELL + CELL / 2
+    };
+  }
+
+  function pixelToCell(x, y) {
+    const c = Math.floor((x - PAD) / CELL);
+    const r = Math.floor((y - PAD) / CELL);
+    if (!inBounds(r, c)) return null;
+    return { r, c };
+  }
+
+  function isAdjacent(a, b) {
+    return Math.abs(a.r - b.r) + Math.abs(a.c - b.c) === 1;
+  }
+
+  function makeCandy(type, special = SPECIAL.NONE) {
+    return {
+      type,
+      special,
+      id: Math.random().toString(36).slice(2),
+      row: 0,
+      col: 0,
+      x: 0,
+      y: 0,
+      targetX: 0,
+      targetY: 0,
+      scale: 1,
+      alpha: 1,
+      removing: false,
+      removeTimer: 0
+    };
+  }
+
+  function assignCandyPosition(candy, r, c, snap = false) {
+    candy.row = r;
+    candy.col = c;
+    const p = cellToPixel(r, c);
+    candy.targetX = p.x;
+    candy.targetY = p.y;
+    if (snap) {
+      candy.x = p.x;
+      candy.y = p.y;
+    }
+  }
+
+  function placeBoardPositions(snap = true) {
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (candy) assignCandyPosition(candy, r, c, snap);
+      }
+    }
+  }
+
+  function addScore(v) {
+    state.score += v;
+    if (state.score > state.best) {
+      state.best = state.score;
+      localStorage.setItem('candyMatchBest31', String(state.best));
+    }
+    updateUI();
+  }
+
+  function addParticles(x, y, color, n = 12) {
+    for (let i = 0; i < n; i++) {
+      state.particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 5.2,
+        vy: (Math.random() - 0.5) * 5.2 - 0.8,
+        life: 26 + Math.random() * 12,
+        size: 3 + Math.random() * 5,
+        color
+      });
+    }
+  }
+
+  function addFloatingText(text, x, y, size = 26) {
+    state.floatingTexts.push({
+      text, x, y, life: 48, size
+    });
+  }
+
+  function addShock(amount = 8) {
+    state.boardShake = Math.max(state.boardShake, amount);
+  }
+
+  function countColorsInBoard(board) {
+    const cnt = Array(TYPES).fill(0);
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        cnt[board[r][c].type]++;
+      }
+    }
+    return cnt;
+  }
+
+  function hasInitialMatchAt(board, r, c) {
+    const t = board[r][c].type;
+    if (c >= 2) {
+      if (board[r][c - 1] && board[r][c - 2] &&
+          board[r][c - 1].type === t && board[r][c - 2].type === t) return true;
+    }
+    if (r >= 2) {
+      if (board[r - 1][c] && board[r - 2][c] &&
+          board[r - 1][c].type === t && board[r - 2][c].type === t) return true;
+    }
+    return false;
+  }
+
+  function getMissionWeightedType(forbiddenSet = new Set()) {
+    const weights = Array(TYPES).fill(1);
+
+    if (state.config.mode === 'color' && state.mission && state.mission.type === 'color') {
+      weights[state.mission.color] = 1.35;
+    }
+    if (state.config.mode === 'special') {
+      // 特別任務時，不偏某色，但讓盤面較平均
+      for (let i = 0; i < TYPES; i++) weights[i] = 1;
+    }
+
+    for (const idx of forbiddenSet) {
+      weights[idx] = 0;
+    }
+
+    const sum = weights.reduce((a, b) => a + b, 0);
+    let x = Math.random() * sum;
+    for (let i = 0; i < TYPES; i++) {
+      x -= weights[i];
+      if (x <= 0) return i;
+    }
+    return 0;
+  }
+
+  function createCandidateBoard() {
+    const board = Array.from({ length: BOARD }, () => Array(BOARD).fill(null));
+
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        let guard = 0;
+        while (true) {
+          const forbidden = new Set();
+
+          if (c >= 2 && board[r][c - 1] && board[r][c - 2] &&
+              board[r][c - 1].type === board[r][c - 2].type) {
+            forbidden.add(board[r][c - 1].type);
+          }
+          if (r >= 2 && board[r - 1][c] && board[r - 2][c] &&
+              board[r - 1][c].type === board[r - 2][c].type) {
+            forbidden.add(board[r - 1][c].type);
+          }
+
+          const type = getMissionWeightedType(forbidden);
+          board[r][c] = makeCandy(type);
+
+          if (!hasInitialMatchAt(board, r, c)) break;
+
+          guard++;
+          if (guard > 20) {
+            board[r][c] = makeCandy(randInt(TYPES));
+            if (!hasInitialMatchAt(board, r, c)) break;
+          }
+        }
+      }
+    }
+
+    return board;
+  }
+
+  function cloneBoardTypes(board) {
+    return board.map(row => row.map(cell => ({
+      type: cell.type,
+      special: cell.special
+    })));
+  }
+
+  function swapInTemp(board, r1, c1, r2, c2) {
+    const t = board[r1][c1];
+    board[r1][c1] = board[r2][c2];
+    board[r2][c2] = t;
+  }
+
+  function tempHasAnyMatch(board) {
+    // horizontal
+    for (let r = 0; r < BOARD; r++) {
+      let c = 0;
+      while (c < BOARD) {
+        const t = board[r][c].type;
+        let start = c;
+        while (c < BOARD && board[r][c].type === t && board[r][c].special !== SPECIAL.COLOR_BOMB) c++;
+        if (c - start >= 3) return true;
+      }
+    }
+    // vertical
+    for (let c = 0; c < BOARD; c++) {
+      let r = 0;
+      while (r < BOARD) {
+        const t = board[r][c].type;
+        let start = r;
+        while (r < BOARD && board[r][c].type === t && board[r][c].special !== SPECIAL.COLOR_BOMB) r++;
+        if (r - start >= 3) return true;
+      }
+    }
+    return false;
+  }
+
+  function countPossibleMovesOnBoard(board) {
+    let count = 0;
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const dirs = [[0,1],[1,0]];
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr, nc = c + dc;
+          if (!inBounds(nr, nc)) continue;
+          swapInTemp(board, r, c, nr, nc);
+          const ok = tempHasAnyMatch(board) ||
+            board[r][c].special === SPECIAL.COLOR_BOMB ||
+            board[nr][nc].special === SPECIAL.COLOR_BOMB;
+          swapInTemp(board, r, c, nr, nc);
+          if (ok) count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  function boardQualityOK(board) {
+    const moveCount = countPossibleMovesOnBoard(cloneBoardTypes(board));
+    if (moveCount < 3) return false;
+    if (moveCount > 18) return false;
+
+    const cnt = countColorsInBoard(board);
+    const minAllowed = 6;
+    const maxAllowed = 15;
+    for (let i = 0; i < TYPES; i++) {
+      if (cnt[i] < minAllowed || cnt[i] > maxAllowed) return false;
+    }
+    return true;
+  }
+
+  function generateMission() {
+    const mode = state.config.mode;
+
+    if (mode === 'free') {
+      state.mission = { type: 'free' };
+      return;
+    }
+
+    if (mode === 'score') {
+      const moves = getConfiguredMoves();
+      const target = moves <= 15 ? 3500 : moves <= 20 ? 5500 : 8500;
+      state.mission = {
+        type: 'score',
+        target
+      };
+      return;
+    }
+
+    if (mode === 'color') {
+      const color = randInt(TYPES);
+      const moves = getConfiguredMoves();
+      const target = moves <= 15 ? 14 : moves <= 20 ? 20 : 28;
+      state.mission = {
+        type: 'color',
+        color,
+        target,
+        progress: 0
+      };
+      return;
+    }
+
+    if (mode === 'special') {
+      const moves = getConfiguredMoves();
+      const target = moves <= 15 ? 2 : moves <= 20 ? 3 : 4;
+      state.mission = {
+        type: 'special',
+        specialKind: 'striped',
+        target,
+        progress: 0
+      };
+    }
+  }
+
+  function getConfiguredMoves() {
+    if (state.config.movesPreset === 'custom') {
+      const v = Math.max(5, Math.min(99, Number(state.config.movesCustom) || 25));
+      return v;
+    }
+    return Number(state.config.movesPreset);
+  }
+
+  function createBoardWithQuality() {
+    let bestBoard = null;
+    let bestScore = -Infinity;
+
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const candidate = createCandidateBoard();
+      const moves = countPossibleMovesOnBoard(cloneBoardTypes(candidate));
+      const cnt = countColorsInBoard(candidate);
+
+      let quality = 0;
+      if (moves >= 3 && moves <= 18) quality += 20;
+      quality -= Math.abs(8 - moves) * 1.2;
+
+      for (let i = 0; i < TYPES; i++) {
+        quality -= Math.max(0, 6 - cnt[i]) * 5;
+        quality -= Math.max(0, cnt[i] - 15) * 5;
+      }
+
+      if (state.mission && state.mission.type === 'color') {
+        quality += cnt[state.mission.color] * 0.8;
+      }
+
+      if (boardQualityOK(candidate)) {
+        bestBoard = candidate;
+        break;
+      }
+
+      if (quality > bestScore) {
+        bestScore = quality;
+        bestBoard = candidate;
+      }
+    }
+
+    state.board = bestBoard;
+    placeBoardPositions(true);
+  }
+
+  function resetGameWithCurrentConfig() {
+    state.score = 0;
+    state.combo = 0;
+    state.selected = null;
+    state.hintCells = null;
+    state.isBusy = false;
+    state.isGameOver = false;
+    state.isWin = false;
+    state.particles = [];
+    state.floatingTexts = [];
+    state.pointerDown = null;
+    state.boardShake = 0;
+    state.moves = getConfiguredMoves();
+    generateMission();
+    createBoardWithQuality();
+    setMessage('');
+    setStatus('等待操作');
+    updateUI();
+  }
+
+  function findMatches() {
+    const marked = Array.from({ length: BOARD }, () => Array(BOARD).fill(false));
+    const meta = new Map();
+    const groups = [];
+
+    for (let r = 0; r < BOARD; r++) {
+      let c = 0;
+      while (c < BOARD) {
+        const candy = state.board[r][c];
+        if (!candy) { c++; continue; }
+        const t = candy.type;
+        let start = c;
+        while (c < BOARD && state.board[r][c] &&
+               state.board[r][c].type === t &&
+               state.board[r][c].special !== SPECIAL.COLOR_BOMB) c++;
+        const len = c - start;
+        if (len >= 3) {
+          const cells = [];
+          for (let cc = start; cc < c; cc++) {
+            marked[r][cc] = true;
+            cells.push({ r, c: cc });
+            const key = `${r},${cc}`;
+            const info = meta.get(key) || { h: 0, v: 0 };
+            info.h = len;
+            meta.set(key, info);
+          }
+          groups.push({ dir: 'h', len, cells });
+        }
+      }
+    }
+
+    for (let c = 0; c < BOARD; c++) {
+      let r = 0;
+      while (r < BOARD) {
+        const candy = state.board[r][c];
+        if (!candy) { r++; continue; }
+        const t = candy.type;
+        let start = r;
+        while (r < BOARD && state.board[r][c] &&
+               state.board[r][c].type === t &&
+               state.board[r][c].special !== SPECIAL.COLOR_BOMB) r++;
+        const len = r - start;
+        if (len >= 3) {
+          const cells = [];
+          for (let rr = start; rr < r; rr++) {
+            marked[rr][c] = true;
+            cells.push({ r: rr, c });
+            const key = `${rr},${c}`;
+            const info = meta.get(key) || { h: 0, v: 0 };
+            info.v = len;
+            meta.set(key, info);
+          }
+          groups.push({ dir: 'v', len, cells });
+        }
+      }
+    }
+
+    return { marked, meta, groups };
+  }
+
+  function chooseSpecialAt(metaInfo) {
+    const both = metaInfo.h >= 3 && metaInfo.v >= 3;
+    if (both) return SPECIAL.WRAPPED;
+    if (metaInfo.h >= 5 || metaInfo.v >= 5) return SPECIAL.COLOR_BOMB;
+    if (metaInfo.h === 4) return SPECIAL.STRIPED_H;
+    if (metaInfo.v === 4) return SPECIAL.STRIPED_V;
+    return SPECIAL.NONE;
+  }
+
+  function markCell(r, c) {
+    if (!inBounds(r, c)) return false;
+    const candy = state.board[r][c];
+    if (!candy) return false;
+    if (!candy.removing) {
+      candy.removing = true;
+      candy.removeTimer = 0.18;
+      return true;
+    }
+    return false;
+  }
+
+  function markRow(r) {
+    let cnt = 0;
+    for (let c = 0; c < BOARD; c++) cnt += markCell(r, c) ? 1 : 0;
+    return cnt;
+  }
+
+  function markCol(c) {
+    let cnt = 0;
+    for (let r = 0; r < BOARD; r++) cnt += markCell(r, c) ? 1 : 0;
+    return cnt;
+  }
+
+  function markArea(r0, c0, rad = 1) {
+    let cnt = 0;
+    for (let r = r0 - rad; r <= r0 + rad; r++) {
+      for (let c = c0 - rad; c <= c0 + rad; c++) {
+        cnt += markCell(r, c) ? 1 : 0;
+      }
+    }
+    return cnt;
+  }
+
+  function clearByType(type) {
+    let cnt = 0;
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (candy && candy.type === type) {
+          cnt += markCell(r, c) ? 1 : 0;
+        }
+      }
+    }
+    return cnt;
+  }
+
+  function clearAll() {
+    let cnt = 0;
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        cnt += markCell(r, c) ? 1 : 0;
+      }
+    }
+    return cnt;
+  }
+
+  function resolveSpecialSwap(a, b) {
+    const ca = state.board[a.r][a.c];
+    const cb = state.board[b.r][b.c];
+    if (!ca || !cb) return null;
+
+    const sa = ca.special;
+    const sb = cb.special;
+    const bombA = sa === SPECIAL.COLOR_BOMB;
+    const bombB = sb === SPECIAL.COLOR_BOMB;
+
+    if (bombA && bombB) {
+      const cnt = clearAll();
+      addScore(3000 + cnt * 50);
+      addShock(15);
+      addFloatingText("MEGA BLAST!", (cellToPixel(a.r,a.c).x + cellToPixel(b.r,b.c).x)/2,
+        (cellToPixel(a.r,a.c).y + cellToPixel(b.r,b.c).y)/2, 34);
+      return { triggered: true };
+    }
+
+    if (bombA || bombB) {
+      const other = bombA ? cb : ca;
+      if (other.special !== SPECIAL.NONE) {
+        const targetType = other.type;
+        for (let r = 0; r < BOARD; r++) {
+          for (let c = 0; c < BOARD; c++) {
+            const candy = state.board[r][c];
+            if (candy && candy.type === targetType) {
+              candy.special = other.special;
+              markCell(r, c);
+            }
+          }
+        }
+        markCell(a.r, a.c);
+        markCell(b.r, b.c);
+        addScore(1800);
+        addShock(10);
+        addFloatingText("COLOR + SPECIAL!", canvas.width / 2, PAD + 42, 31);
+        return { triggered: true };
+      } else {
+        const cnt = clearByType(other.type);
+        markCell(a.r, a.c);
+        markCell(b.r, b.c);
+        addScore(1200 + cnt * 40);
+        addShock(9);
+        addFloatingText("SWEET!", canvas.width / 2, PAD + 42, 30);
+        return { triggered: true };
+      }
+    }
+
+    if (sa !== SPECIAL.NONE || sb !== SPECIAL.NONE) {
+      if ((sa === SPECIAL.STRIPED_H || sa === SPECIAL.STRIPED_V) &&
+          (sb === SPECIAL.STRIPED_H || sb === SPECIAL.STRIPED_V)) {
+        markRow(a.r); markCol(a.c);
+        markRow(b.r); markCol(b.c);
+        addScore(900);
+        addShock(10);
+        addFloatingText("STRIPED x STRIPED!", canvas.width / 2, PAD + 42, 28);
+        return { triggered: true };
+      }
+
+      if (sa === SPECIAL.WRAPPED && sb === SPECIAL.WRAPPED) {
+        markArea(a.r, a.c, 2);
+        markArea(b.r, b.c, 2);
+        addScore(1200);
+        addShock(12);
+        addFloatingText("WRAPPED x WRAPPED!", canvas.width / 2, PAD + 42, 28);
+        return { triggered: true };
+      }
+
+      const stripeWrapped =
+        ((sa === SPECIAL.WRAPPED) && (sb === SPECIAL.STRIPED_H || sb === SPECIAL.STRIPED_V)) ||
+        ((sb === SPECIAL.WRAPPED) && (sa === SPECIAL.STRIPED_H || sa === SPECIAL.STRIPED_V));
+
+      if (stripeWrapped) {
+        for (let rr = a.r - 1; rr <= a.r + 1; rr++) if (inBounds(rr, 0)) markRow(rr);
+        for (let cc = a.c - 1; cc <= a.c + 1; cc++) if (inBounds(0, cc)) markCol(cc);
+        addScore(1400);
+        addShock(12);
+        addFloatingText("WRAPPED x STRIPED!", canvas.width / 2, PAD + 42, 28);
+        return { triggered: true };
+      }
+    }
+
+    return null;
+  }
+
+  function applySpecialChainEffects() {
+    let changed = false;
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (!candy || !candy.removing) continue;
+        if (candy.special === SPECIAL.NONE || candy.special === SPECIAL.COLOR_BOMB) continue;
+
+        const before = countRemoving();
+        if (candy.special === SPECIAL.STRIPED_H) markRow(r);
+        else if (candy.special === SPECIAL.STRIPED_V) markCol(c);
+        else if (candy.special === SPECIAL.WRAPPED) markArea(r, c, 1);
+        const after = countRemoving();
+        if (after > before) changed = true;
+      }
+    }
+    return changed;
+  }
+
+  function countRemoving() {
+    let cnt = 0;
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        if (state.board[r][c] && state.board[r][c].removing) cnt++;
+      }
+    }
+    return cnt;
+  }
+
+  function startRemovalVisuals() {
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (candy && candy.removing && candy.removeTimer <= 0) {
+          candy.removeTimer = 0.18;
+        }
+      }
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise(res => setTimeout(res, ms));
+  }
+
+  function anyCandyMoving() {
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (!candy) continue;
+        if (Math.abs(candy.x - candy.targetX) > 0.8 || Math.abs(candy.y - candy.targetY) > 0.8) return true;
+      }
+    }
+    return false;
+  }
+
+  async function waitUntilSettled(maxMs = 900) {
+    const start = performance.now();
+    while (anyCandyMoving() && performance.now() - start < maxMs) {
+      await sleep(16);
+    }
+  }
+
+  async function collapseBoard() {
+    for (let c = 0; c < BOARD; c++) {
+      let write = BOARD - 1;
+      for (let r = BOARD - 1; r >= 0; r--) {
+        const candy = state.board[r][c];
+        if (candy) {
+          if (write !== r) {
+            state.board[write][c] = candy;
+            state.board[r][c] = null;
+          }
+          write--;
+        }
+      }
+      for (let r = write; r >= 0; r--) {
+        state.board[r][c] = null;
+      }
+    }
+    placeBoardPositions(false);
+    await waitUntilSettled();
+  }
+
+  function getNewSpawnType(r, c) {
+    const forbidden = new Set();
+
+    if (c >= 2 && state.board[r][c - 1] && state.board[r][c - 2] &&
+        state.board[r][c - 1].type === state.board[r][c - 2].type) {
+      forbidden.add(state.board[r][c - 1].type);
+    }
+    if (r <= BOARD - 3 && state.board[r + 1][c] && state.board[r + 2][c] &&
+        state.board[r + 1][c].type === state.board[r + 2][c].type) {
+      forbidden.add(state.board[r + 1][c].type);
+    }
+
+    return getMissionWeightedType(forbidden);
+  }
+
+  async function fillBoard() {
+    for (let c = 0; c < BOARD; c++) {
+      let empties = 0;
+      for (let r = 0; r < BOARD; r++) if (!state.board[r][c]) empties++;
+
+      for (let r = 0; r < BOARD; r++) {
+        if (!state.board[r][c]) {
+          const type = getNewSpawnType(r, c);
+          const candy = makeCandy(type);
+          const p = cellToPixel(r, c);
+          candy.row = r;
+          candy.col = c;
+          candy.x = p.x;
+          candy.y = PAD - (empties * CELL) - Math.random() * 40;
+          candy.targetX = p.x;
+          candy.targetY = p.y;
+          state.board[r][c] = candy;
+        }
+      }
+    }
+    await waitUntilSettled();
+  }
+
+  function updateMissionProgressFromRemoved(removed) {
+    const mission = state.mission;
+    if (!mission) return;
+
+    if (mission.type === 'color') {
+      for (const item of removed) {
+        if (item.candy.type === mission.color) mission.progress++;
+      }
+    }
+  }
+
+  function updateMissionProgressFromCreation(creation) {
+    const mission = state.mission;
+    if (!mission) return;
+
+    if (mission.type === 'special') {
+      if (creation && (creation.special === SPECIAL.STRIPED_H || creation.special === SPECIAL.STRIPED_V)) {
+        mission.progress++;
+      }
+    }
+  }
+
+  function missionComplete() {
+    const mission = state.mission;
+    if (!mission || mission.type === 'free') return false;
+    if (mission.type === 'score') return state.score >= mission.target;
+    if (mission.type === 'color') return mission.progress >= mission.target;
+    if (mission.type === 'special') return mission.progress >= mission.target;
+    return false;
+  }
+
+  function handleWin() {
+    state.isBusy = false;
+    state.isGameOver = true;
+    state.isWin = true;
+    setStatus('Level Complete!');
+    setMessage('恭喜過關！按 Start New Level 可開新關。');
+    addFloatingText('LEVEL COMPLETE!', canvas.width / 2, canvas.height / 2, 34);
+    addShock(14);
+    updateUI();
+  }
+
+  function handleFail() {
+    state.isBusy = false;
+    state.isGameOver = true;
+    state.isWin = false;
+    setStatus('Mission Failed');
+    setMessage('步數用完且未完成任務。');
+    addFloatingText('MISSION FAILED', canvas.width / 2, canvas.height / 2, 30);
+    updateUI();
+  }
+
+  async function resolveBoardLoop(fromPlayerMove = false, swapInfo = null) {
+    let cascades = 0;
+    let firstPass = true;
+
+    while (true) {
+      const matchInfo = findMatches();
+      if (matchInfo.groups.length === 0) {
+        if (cascades === 0 && fromPlayerMove) return false;
+        break;
+      }
+
+      cascades++;
+      state.combo = cascades;
+      setStatus(cascades > 1 ? `Combo x${cascades}` : '消除中');
+
+      let creation = null;
+      if (firstPass && swapInfo) {
+        const candidates = [swapInfo.a, swapInfo.b];
+        for (const pos of candidates) {
+          const metaInfo = matchInfo.meta.get(`${pos.r},${pos.c}`);
+          if (metaInfo) {
+            const sp = chooseSpecialAt(metaInfo);
+            if (sp !== SPECIAL.NONE) {
+              creation = { r: pos.r, c: pos.c, special: sp };
+              break;
+            }
+          }
+        }
+      } else {
+        for (const [key, metaInfo] of matchInfo.meta.entries()) {
+          const sp = chooseSpecialAt(metaInfo);
+          if (sp !== SPECIAL.NONE) {
+            const [r, c] = key.split(',').map(Number);
+            creation = { r, c, special: sp };
+            break;
+          }
+        }
+      }
+
+      for (let r = 0; r < BOARD; r++) {
+        for (let c = 0; c < BOARD; c++) {
+          if (matchInfo.marked[r][c]) markCell(r, c);
+        }
+      }
+
+      if (creation) {
+        const candy = state.board[creation.r][creation.c];
+        if (candy) {
+          candy.removing = false;
+          candy.removeTimer = 0;
+          candy.special = creation.special;
+        }
+      }
+
+      while (applySpecialChainEffects()) {}
+
+      const removed = [];
+      for (let r = 0; r < BOARD; r++) {
+        for (let c = 0; c < BOARD; c++) {
+          const candy = state.board[r][c];
+          if (candy && candy.removing) removed.push({ r, c, candy });
+        }
+      }
+
+      updateMissionProgressFromRemoved(removed);
+      updateMissionProgressFromCreation(creation);
+
+      let gained = removed.length * 60 + Math.max(0, cascades - 1) * 150;
+      if (creation) {
+        if (creation.special === SPECIAL.COLOR_BOMB) gained += 500;
+        else if (creation.special === SPECIAL.WRAPPED) gained += 260;
+        else gained += 160;
+      }
+      addScore(gained);
+
+      if (creation) {
+        const p = cellToPixel(creation.r, creation.c);
+        const text =
+          creation.special === SPECIAL.COLOR_BOMB ? 'COLOR!' :
+          creation.special === SPECIAL.WRAPPED ? 'WRAPPED!' : 'STRIPED!';
+        addFloatingText(text, p.x, p.y, 28);
+      } else if (cascades > 1) {
+        addFloatingText(`COMBO x${cascades}`, canvas.width / 2, PAD + 40, 28);
+      }
+
+      for (const item of removed) {
+        const p = cellToPixel(item.r, item.c);
+        addParticles(p.x, p.y, COLORS[item.candy.type], 12);
+      }
+      addShock(removed.length >= 7 ? 8 : 4);
+
+      startRemovalVisuals();
+      await sleep(220);
+
+      for (const item of removed) {
+        if (state.board[item.r][item.c] && state.board[item.r][item.c].removing) {
+          state.board[item.r][item.c] = null;
+        }
+      }
+
+      if (missionComplete()) {
+        updateUI();
+        await collapseBoard();
+        handleWin();
+        return true;
+      }
+
+      await collapseBoard();
+      await fillBoard();
+
+      firstPass = false;
+    }
+
+    // 若無解，自動洗牌
+    const boardTypes = cloneBoardTypes(state.board);
+    if (countPossibleMovesOnBoard(boardTypes) < 1) {
+      shuffleBoard(true);
+    }
+
+    setStatus('等待操作');
+    updateUI();
+    return true;
+  }
+
+  function shuffleBoard(showMessage = true) {
+    const oldMission = state.mission;
+    const oldMoves = state.moves;
+    const oldScore = state.score;
+    createBoardWithQuality();
+    state.mission = oldMission;
+    state.moves = oldMoves;
+    state.score = oldScore;
+    if (showMessage) {
+      setStatus('已洗牌');
+      setMessage('盤面已重新洗牌');
+    }
+    updateUI();
+  }
+
+  function simulateSwap(r1, c1, r2, c2) {
+    const board = cloneBoardTypes(state.board);
+    swapInTemp(board, r1, c1, r2, c2);
+    return tempHasAnyMatch(board) ||
+      board[r1][c1].special === SPECIAL.COLOR_BOMB ||
+      board[r2][c2].special === SPECIAL.COLOR_BOMB;
+  }
+
+  function findPossibleMove() {
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const dirs = [[0,1],[1,0]];
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr, nc = c + dc;
+          if (!inBounds(nr, nc)) continue;
+          if (simulateSwap(r, c, nr, nc)) return [{ r, c }, { r: nr, c: nc }];
+        }
+      }
+    }
+    return null;
+  }
+
+  function swapBoardCells(a, b) {
+    const t = state.board[a.r][a.c];
+    state.board[a.r][a.c] = state.board[b.r][b.c];
+    state.board[b.r][b.c] = t;
+    if (state.board[a.r][a.c]) assignCandyPosition(state.board[a.r][a.c], a.r, a.c, false);
+    if (state.board[b.r][b.c]) assignCandyPosition(state.board[b.r][b.c], b.r, b.c, false);
+  }
+
+  async function animateSwap(a, b, revert = false) {
+    swapBoardCells(a, b);
+    await waitUntilSettled(260);
+    if (revert) {
+      swapBoardCells(a, b);
+      await waitUntilSettled(260);
+    }
+  }
+
+  async function resolveRemovalPhaseAfterSpecialSwap() {
+    while (applySpecialChainEffects()) {}
+
+    const removed = [];
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (candy && candy.removing) removed.push({ r, c, candy });
+      }
+    }
+
+    updateMissionProgressFromRemoved(removed);
+
+    for (const item of removed) {
+      const p = cellToPixel(item.r, item.c);
+      addParticles(p.x, p.y, COLORS[item.candy.type], 14);
+    }
+
+    if (missionComplete()) {
+      handleWin();
+      return;
+    }
+
+    startRemovalVisuals();
+    await sleep(220);
+
+    for (const item of removed) {
+      if (state.board[item.r][item.c] && state.board[item.r][item.c].removing) {
+        state.board[item.r][item.c] = null;
+      }
+    }
+
+    await collapseBoard();
+    await fillBoard();
+    await resolveBoardLoop(false, null);
+  }
+
+  async function attemptSwap(a, b) {
+    if (state.isBusy || state.isGameOver) return false;
+    if (!isAdjacent(a, b)) return false;
+
+    state.isBusy = true;
+    state.selected = null;
+    state.hintCells = null;
+    setMessage('');
+
+    await animateSwap(a, b, false);
+
+    let specialTriggered = resolveSpecialSwap(a, b);
+    let matched = false;
+
+    if (specialTriggered) {
+      if (state.moves > 0) state.moves--;
+      updateUI();
+      await resolveRemovalPhaseAfterSpecialSwap();
+      matched = true;
+    } else {
+      const hasMatch = findMatches().groups.length > 0;
+      if (hasMatch) {
+        if (state.moves > 0) state.moves--;
+        updateUI();
+        matched = await resolveBoardLoop(true, { a, b });
+      } else {
+        setStatus('無效交換');
+        setMessage('這次交換無法形成消除');
+        await animateSwap(a, b, true);
+        state.combo = 0;
+        updateUI();
+      }
+    }
+
+    if (!state.isGameOver) {
+      if (missionComplete()) {
+        handleWin();
+      } else if (state.moves <= 0) {
+        if (state.mission && state.mission.type !== 'free') handleFail();
+        else {
+          state.isGameOver = true;
+          setStatus('Game Over');
+          setMessage(`本局結束！你的分數：${state.score}`);
+        }
+      } else {
+        setStatus('等待操作');
+      }
+    }
+
+    state.isBusy = false;
+    updateUI();
+    return matched;
+  }
+
+  function updateAnimations(dt) {
+    const speed = 20;
+
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const candy = state.board[r][c];
+        if (!candy) continue;
+
+        candy.x += (candy.targetX - candy.x) * Math.min(1, dt * speed);
+        candy.y += (candy.targetY - candy.y) * Math.min(1, dt * speed);
+
+        if (candy.removing) {
+          candy.removeTimer -= dt;
+          const t = Math.max(0, candy.removeTimer / 0.18);
+          candy.scale = 0.2 + 0.8 * t;
+          candy.alpha = t;
+        } else {
+          candy.scale += (1 - candy.scale) * Math.min(1, dt * 16);
+          candy.alpha += (1 - candy.alpha) * Math.min(1, dt * 16);
+        }
+      }
+    }
+
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+      const p = state.particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      p.vy += 0.05;
+      p.life -= dt * 60;
+      p.size *= 0.985;
+      if (p.life <= 0 || p.size < 0.5) state.particles.splice(i, 1);
+    }
+
+    for (let i = state.floatingTexts.length - 1; i >= 0; i--) {
+      const f = state.floatingTexts[i];
+      f.y -= 32 * dt;
+      f.life -= dt * 60;
+      if (f.life <= 0) state.floatingTexts.splice(i, 1);
+    }
+
+    if (state.boardShake > 0) {
+      state.boardShake *= 0.86;
+      if (state.boardShake < 0.2) state.boardShake = 0;
+    }
+  }
+
+  function drawGrid() {
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        const x = PAD + c * CELL;
+        const y = PAD + r * CELL;
+        roundRect(ctx, x + 4, y + 4, CELL - 8, CELL - 8, 18, '#ffffffb0', '#e6ebff');
+      }
+    }
+  }
+
+  function highlightCell(r, c, color) {
+    const x = PAD + c * CELL;
+    const y = PAD + r * CELL;
+    ctx.save();
+    ctx.fillStyle = color;
+    roundRectPath(ctx, x + 3, y + 3, CELL - 6, CELL - 6, 18);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawStripedMark(horizontal) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = 4;
+    if (horizontal) {
+      for (const y of [-10, 0, 10]) {
+        ctx.beginPath();
+        ctx.moveTo(-16, y);
+        ctx.lineTo(16, y);
+        ctx.stroke();
+      }
+    } else {
+      for (const x of [-10, 0, 10]) {
+        ctx.beginPath();
+        ctx.moveTo(x, -16);
+        ctx.lineTo(x, 16);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawWrappedMark() {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,.96)';
+    roundRectPath(ctx, -13, -13, 26, 26, 7);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,140,180,.82)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+    ctx.moveTo(0, -10); ctx.lineTo(0, 10);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawColorBomb(x, y) {
+    const grd = ctx.createRadialGradient(x - 7, y - 8, 2, x, y, 24);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(1, '#382d43');
+    ctx.beginPath();
+    ctx.ellipse(x, y, 23, 23, 0, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    const dots = ['#ff5f8f','#4db6ff','#ffd34d','#62d26f','#b07cff','#ff9654'];
+    for (let i = 0; i < dots.length; i++) {
+      const ang = i / dots.length * Math.PI * 2;
+      const dx = Math.cos(ang) * 12;
+      const dy = Math.sin(ang) * 12;
+      ctx.beginPath();
+      ctx.fillStyle = dots[i];
+      ctx.arc(x + dx, y + dy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawCandy(candy) {
+    const cx = candy.x;
+    const cy = candy.y;
+    const base = COLORS[candy.type];
+
+    ctx.save();
+    ctx.globalAlpha = candy.alpha;
+    ctx.translate(cx, cy);
+    ctx.scale(candy.scale, candy.scale);
+
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(75,60,100,.12)';
+    ctx.ellipse(0, 7, 25, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (candy.special === SPECIAL.COLOR_BOMB) {
+      drawColorBomb(0, 0);
+      ctx.restore();
+      return;
+    }
+
+    const grd = ctx.createRadialGradient(-10, -15, 5, 0, 0, 32);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(0.18, lighten(base, .43));
+    grd.addColorStop(1, base);
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 25, 27, 0, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.ellipse(-8, -12, 9, 6, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,.65)';
+    ctx.stroke();
+
+    if (candy.special === SPECIAL.STRIPED_H || candy.special === SPECIAL.STRIPED_V) {
+      drawStripedMark(candy.special === SPECIAL.STRIPED_H);
+    } else if (candy.special === SPECIAL.WRAPPED) {
+      drawWrappedMark();
+    }
+
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    for (const p of state.particles) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life / 36);
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawFloatingTexts() {
+    for (const f of state.floatingTexts) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, f.life / 48);
+      ctx.font = `bold ${f.size}px "Segoe UI","Noto Sans TC",sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#8c5bdd';
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const shakeX = state.boardShake ? (Math.random() - 0.5) * state.boardShake : 0;
+    const shakeY = state.boardShake ? (Math.random() - 0.5) * state.boardShake : 0;
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    drawGrid();
+
+    if (state.hintCells) {
+      for (const cell of state.hintCells) {
+        highlightCell(cell.r, cell.c, 'rgba(255,208,77,.42)');
+      }
+    }
+
+    if (state.selected) {
+      highlightCell(state.selected.r, state.selected.c, 'rgba(122,141,255,.36)');
+    }
+
+    const all = [];
+    for (let r = 0; r < BOARD; r++) {
+      for (let c = 0; c < BOARD; c++) {
+        if (state.board[r][c]) all.push(state.board[r][c]);
+      }
+    }
+    all.sort((a, b) => a.y - b.y);
+    for (const candy of all) drawCandy(candy);
+
+    drawParticles();
+    drawFloatingTexts();
+
+    ctx.restore();
+  }
+
+  function animate(ts) {
+    const dt = Math.min(0.033, (ts - state.lastTime) / 1000);
+    state.lastTime = ts;
+    updateAnimations(dt);
+    draw();
+    requestAnimationFrame(animate);
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+    ctx.save();
+    roundRectPath(ctx, x, y, w, h, r);
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function lighten(hex, a) {
+    const s = hex.replace('#','');
+    let r = parseInt(s.slice(0,2),16);
+    let g = parseInt(s.slice(2,4),16);
+    let b = parseInt(s.slice(4,6),16);
+    r = Math.round(r + (255 - r) * a);
+    g = Math.round(g + (255 - g) * a);
+    b = Math.round(b + (255 - b) * a);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function getLocalPos(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function onPointerDown(clientX, clientY) {
+    if (state.isBusy || state.isGameOver) return;
+    const p = getLocalPos(clientX, clientY);
+    const cell = pixelToCell(p.x, p.y);
+    if (!cell) return;
+    state.pointerDown = { ...p, cell };
+  }
+
+  async function onPointerUp(clientX, clientY) {
+    if (state.isBusy || state.isGameOver) return;
+    const p = getLocalPos(clientX, clientY);
+    const cell = pixelToCell(p.x, p.y);
+    if (!cell) {
+      state.pointerDown = null;
+      return;
+    }
+
+    if (state.pointerDown) {
+      const dx = p.x - state.pointerDown.x;
+      const dy = p.y - state.pointerDown.y;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+
+      if (ax > 18 || ay > 18) {
+        const from = state.pointerDown.cell;
+        let to;
+        if (ax > ay) to = { r: from.r, c: from.c + (dx > 0 ? 1 : -1) };
+        else to = { r: from.r + (dy > 0 ? 1 : -1), c: from.c };
+        if (to && inBounds(to.r, to.c)) {
+          state.pointerDown = null;
+          await attemptSwap(from, to);
+          return;
+        }
+      }
+    }
+
+    if (!state.selected) {
+      state.selected = cell;
+      setStatus('已選取糖果');
+    } else {
+      if (state.selected.r === cell.r && state.selected.c === cell.c) {
+        state.selected = null;
+        setStatus('取消選取');
+      } else if (isAdjacent(state.selected, cell)) {
+        const from = state.selected;
+        state.selected = null;
+        await attemptSwap(from, cell);
+      } else {
+        state.selected = cell;
+        setStatus('重新選取');
+      }
+    }
+    state.pointerDown = null;
+  }
+
+  function setupConfigUI() {
+    const modeRow = document.getElementById('modeRow');
+    const movesRow = document.getElementById('movesRow');
+    const customBox = document.getElementById('customMoveBox');
+    const customInput = document.getElementById('customMovesInput');
+
+    modeRow.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        modeRow.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+        chip.classList.add('active');
+        state.config.mode = chip.dataset.mode;
+      });
+    });
+
+    movesRow.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        movesRow.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+        chip.classList.add('active');
+        const v = chip.dataset.moves;
+        state.config.movesPreset = v === 'custom' ? 'custom' : Number(v);
+        customBox.style.display = v === 'custom' ? 'flex' : 'none';
+      });
+    });
+
+    customInput.addEventListener('input', () => {
+      state.config.movesCustom = Math.max(5, Math.min(99, Number(customInput.value) || 25));
+    });
+
+    document.getElementById('applyConfigBtn').addEventListener('click', () => {
+      resetGameWithCurrentConfig();
+    });
+  }
+
+  function bindEvents() {
+    canvas.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
+    canvas.addEventListener('mouseup', e => onPointerUp(e.clientX, e.clientY));
+
+    canvas.addEventListener('touchstart', e => {
+      const t = e.changedTouches[0];
+      onPointerDown(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      onPointerUp(t.clientX, t.clientY);
+      e.preventDefault();
+    }, { passive: false });
+
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      resetGameWithCurrentConfig();
+    });
+
+    document.getElementById('shuffleBtn').addEventListener('click', () => {
+      if (state.isBusy || state.isGameOver) return;
+      shuffleBoard(true);
+    });
+
+    document.getElementById('hintBtn').addEventListener('click', () => {
+      if (state.isBusy || state.isGameOver) return;
+      const move = findPossibleMove();
+      if (move) {
+        state.hintCells = move;
+        setStatus('提示已顯示');
+        setMessage('已高亮一組可交換位置');
+        setTimeout(() => state.hintCells = null, 1200);
+      } else {
+        setMessage('目前找不到可交換步，建議 Shuffle');
+      }
+    });
+  }
+
+  function init() {
+    setupConfigUI();
+    bindEvents();
+    resetGameWithCurrentConfig();
+    requestAnimationFrame(animate);
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
