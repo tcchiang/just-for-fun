@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>炸彈重力版俄羅斯方塊 v6</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    touch-action: manipulation;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1d2671, #c33764);
+    font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-container {
+    display: grid;
+    grid-template-columns: auto 230px;
+    gap: 18px;
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255,255,255,0.13);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+}
+
+canvas {
+    background: #111827;
+    border-radius: 14px;
+}
+
+#board {
+    width: min(55vw, 330px);
+    aspect-ratio: 1 / 2;
+}
+
+.side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 25px;
+    text-align: center;
+}
+
+.box {
+    background: rgba(0,0,0,0.25);
+    padding: 10px;
+    border-radius: 14px;
+}
+
+.next-box {
+    text-align: center;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.label {
+    color: #d1d5db;
+    font-size: 13px;
+}
+
+.value {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+}
+
+button {
+    border: none;
+    border-radius: 12px;
+    background: #facc15;
+    color: #111827;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+.main-btn {
+    padding: 10px;
+    font-size: 15px;
+}
+
+.touch-controls {
+    display: grid;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.touch-btn {
+    width: 64px;
+    height: 48px;
+    font-size: 22px;
+}
+
+.drop-btn {
+    width: 136px;
+    height: 48px;
+    font-size: 16px;
+}
+
+.help {
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.status {
+    color: #facc15;
+    font-weight: bold;
+    min-height: 22px;
+    text-align: center;
+}
+
+@media (max-width: 800px) {
+    body {
+        align-items: flex-start;
+    }
+
+    .game-container {
+        width: 100%;
+        min-height: 100vh;
+        border-radius: 0;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 10px;
+        gap: 10px;
+    }
+
+    #board {
+        width: min(94vw, 360px);
+        max-height: 58vh;
+    }
+
+    .side-panel {
+        width: min(94vw, 360px);
+        gap: 8px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    .next-box {
+        display: none;
+    }
+
+    .desktop-help {
+        display: none;
+    }
+
+    .button-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .main-btn {
+        font-size: 14px;
+        padding: 9px 6px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="game-container">
+    <canvas id="board" width="300" height="600"></canvas>
+
+    <div class="side-panel">
+        <h1>炸彈俄羅斯方塊</h1>
+
+        <div class="box next-box">
+            <div class="label">下一個方塊</div>
+            <canvas id="next" width="120" height="120"></canvas>
+        </div>
+
+        <div class="info-grid">
+            <div class="box">
+                <div class="label">分數</div>
+                <div id="score" class="value">0</div>
+            </div>
+            <div class="box">
+                <div class="label">行數</div>
+                <div id="lines" class="value">0</div>
+            </div>
+            <div class="box">
+                <div class="label">等級</div>
+                <div id="level" class="value">1</div>
+            </div>
+        </div>
+
+        <div class="button-grid">
+            <button class="main-btn" onclick="restartGame()">重新開始 R</button>
+            <button class="main-btn" onclick="togglePause()">暫停 P</button>
+            <button id="ghostBtn" class="main-btn" onclick="toggleGhost()">鬼影：開</button>
+        </div>
+
+		<div class="touch-controls">
+			<div class="control-row">
+				<button class="touch-btn" data-action="left">←</button>
+				<button class="touch-btn" data-action="rotate">↻</button>
+				<button class="touch-btn" data-action="right">→</button>
+			</div>
+			<div class="control-row">
+				<button class="touch-btn" data-action="down">↓</button>
+				<button class="drop-btn" data-action="drop">直接落下</button>
+			</div>
+		</div>
+
+        <div class="box help desktop-help">
+            ← →：移動　↓：加速<br>
+            ↑：旋轉　Space：直接落下<br>
+            P：暫停　R：重新開始<br>
+            💣：消行時爆炸，方塊自然下落
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const nextCanvas = document.getElementById("next");
+const nextCtx = nextCanvas.getContext("2d");
+
+const COLS = 10;
+const ROWS = 20;
+const BLOCK = 30;
+const BOMB_RATE = 0.08;
+
+const COLORS = {
+    I: "#22d3ee",
+    O: "#facc15",
+    T: "#c084fc",
+    S: "#4ade80",
+    Z: "#f87171",
+    J: "#60a5fa",
+    L: "#fb923c"
+};
+
+const SHAPES = {
+    I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    O: [[1,1],[1,1]],
+    T: [[0,1,0],[1,1,1],[0,0,0]],
+    S: [[0,1,1],[1,1,0],[0,0,0]],
+    Z: [[1,1,0],[0,1,1],[0,0,0]],
+    J: [[1,0,0],[1,1,1],[0,0,0]],
+    L: [[0,0,1],[1,1,1],[0,0,0]]
+};
+
+let board, current, nextPiece;
+let score, lines, level;
+let dropInterval, lastTime, dropCounter;
+let gameOver, paused, animationId;
+let ghostEnabled = true;
+let audioContext = null;
+
+function playTone(freq, duration, type = "sine", volume = 0.08) {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+
+    gain.gain.setValueAtTime(volume, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+}
+
+function playClearSound() {
+    playTone(660, 0.09, "square", 0.06);
+    setTimeout(() => playTone(880, 0.11, "square", 0.06), 80);
+}
+
+function playBombSound() {
+    playTone(120, 0.15, "sawtooth", 0.12);
+    setTimeout(() => playTone(80, 0.18, "sawtooth", 0.10), 90);
+}
+
+function createBoard() {
+    return Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+}
+
+function cloneMatrix(matrix) {
+    return matrix.map(row => [...row]);
+}
+
+function createBombMatrix(matrix) {
+    const bombs = matrix.map(row => row.map(() => false));
+    const filledCells = [];
+
+    for (let y = 0; y < matrix.length; y++) {
+        for (let x = 0; x < matrix[y].length; x++) {
+            if (matrix[y][x]) {
+                filledCells.push({ x, y });
+            }
+        }
+    }
+
+    if (Math.random() < BOMB_RATE && filledCells.length > 0) {
+        const chosen = filledCells[Math.floor(Math.random() * filledCells.length)];
+        bombs[chosen.y][chosen.x] = true;
+    }
+
+    return bombs;
+}
+
+function randomPiece() {
+    const types = Object.keys(SHAPES);
+    const type = types[Math.floor(Math.random() * types.length)];
+    const matrix = cloneMatrix(SHAPES[type]);
+
+    return {
+        type,
+        matrix,
+        bombs: createBombMatrix(matrix),
+        x: Math.floor(COLS / 2) - 2,
+        y: 0,
+        color: COLORS[type]
+    };
+}
+
+function drawBlock(context, x, y, color, size = BLOCK, isBomb = false) {
+    context.fillStyle = color;
+    context.fillRect(x * size, y * size, size, size);
+
+    context.strokeStyle = "rgba(255,255,255,0.35)";
+    context.lineWidth = 2;
+    context.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2);
+
+    context.fillStyle = "rgba(255,255,255,0.18)";
+    context.fillRect(x * size + 4, y * size + 4, size - 8, 5);
+
+    if (isBomb) {
+        context.font = `${Math.floor(size * 0.62)}px serif`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillStyle = "black";
+        context.fillText("💣", x * size + size / 2, y * size + size / 2 + 1);
+    }
+}
+
+function drawBoard() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
+
+    for (let x = 0; x <= COLS; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * BLOCK, 0);
+        ctx.lineTo(x * BLOCK, ROWS * BLOCK);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= ROWS; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * BLOCK);
+        ctx.lineTo(COLS * BLOCK, y * BLOCK);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y < ROWS; y++) {
+        for (let x = 0; x < COLS; x++) {
+            if (board[y][x]) {
+                drawBlock(ctx, x, y, board[y][x].color, BLOCK, board[y][x].bomb);
+            }
+        }
+    }
+
+    if (!gameOver && current) {
+        if (ghostEnabled) {
+            const ghost = getGhostPiece();
+            drawGhostPiece(ctx, ghost);
+        }
+        drawPiece(ctx, current);
+    }
+}
+
+function drawPiece(context, piece) {
+    piece.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                drawBlock(
+                    context,
+                    piece.x + x,
+                    piece.y + y,
+                    piece.color,
+                    BLOCK,
+                    piece.bombs[y][x]
+                );
+            }
+        });
+    });
+}
+
+function getGhostPiece() {
+    const ghost = {
+        type: current.type,
+        matrix: current.matrix,
+        bombs: current.bombs,
+        x: current.x,
+        y: current.y,
+        color: current.color
+    };
+
+    while (!collide(ghost)) {
+        ghost.y++;
+    }
+
+    ghost.y--;
+    return ghost;
+}
+
+function drawGhostPiece(context, piece) {
+    context.save();
+    context.globalAlpha = 0.22;
+
+    piece.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                const drawX = piece.x + x;
+                const drawY = piece.y + y;
+
+                context.fillStyle = piece.color;
+                context.fillRect(drawX * BLOCK, drawY * BLOCK, BLOCK, BLOCK);
+
+                context.strokeStyle = "rgba(255,255,255,0.95)";
+                context.lineWidth = 2;
+                context.strokeRect(
+                    drawX * BLOCK + 4,
+                    drawY * BLOCK + 4,
+                    BLOCK - 8,
+                    BLOCK - 8
+                );
+            }
+        });
+    });
+
+    context.restore();
+}
+
+function drawNextPiece() {
+    nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+
+    const size = 24;
+    const matrix = nextPiece.matrix;
+    const offsetX = Math.floor((5 - matrix[0].length) / 2);
+    const offsetY = Math.floor((5 - matrix.length) / 2);
+
+    matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                drawBlock(
+                    nextCtx,
+                    offsetX + x,
+                    offsetY + y,
+                    nextPiece.color,
+                    size,
+                    nextPiece.bombs[y][x]
+                );
+            }
+        });
+    });
+}
+
+function collide(piece) {
+    for (let y = 0; y < piece.matrix.length; y++) {
+        for (let x = 0; x < piece.matrix[y].length; x++) {
+            if (piece.matrix[y][x]) {
+                const newX = piece.x + x;
+                const newY = piece.y + y;
+
+                if (
+                    newX < 0 ||
+                    newX >= COLS ||
+                    newY >= ROWS ||
+                    (newY >= 0 && board[newY][newX])
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+function mergePiece() {
+    current.matrix.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                const boardY = current.y + y;
+                const boardX = current.x + x;
+
+                if (boardY >= 0) {
+                    board[boardY][boardX] = {
+                        color: current.color,
+                        bomb: current.bombs[y][x]
+                    };
+                }
+            }
+        });
+    });
+}
+
+function rotateSquareMatrix(matrix) {
+    const n = matrix.length;
+    const rotated = Array.from({ length: n }, () => Array(n).fill(0));
+
+    for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+            rotated[x][n - 1 - y] = matrix[y][x];
+        }
+    }
+
+    return rotated;
+}
+
+function rotatePiece() {
+    if (paused || gameOver) return;
+    if (current.type === "O") return;
+
+    const oldMatrix = current.matrix;
+    const oldBombs = current.bombs;
+    const oldX = current.x;
+
+    current.matrix = rotateSquareMatrix(current.matrix);
+    current.bombs = rotateSquareMatrix(current.bombs);
+
+    const kicks = [0, -1, 1, -2, 2];
+
+    for (const offset of kicks) {
+        current.x = oldX + offset;
+        if (!collide(current)) return;
+    }
+
+    current.matrix = oldMatrix;
+    current.bombs = oldBombs;
+    current.x = oldX;
+}
+
+function movePiece(dir) {
+    if (paused || gameOver) return;
+
+    current.x += dir;
+
+    if (collide(current)) {
+        current.x -= dir;
+    }
+}
+
+function dropPiece() {
+    if (paused || gameOver) return;
+
+    current.y++;
+
+    if (collide(current)) {
+        current.y--;
+        mergePiece();
+        clearLines();
+        spawnPiece();
+    }
+
+    dropCounter = 0;
+}
+
+function hardDrop() {
+    if (paused || gameOver) return;
+
+    while (!collide(current)) {
+        current.y++;
+    }
+
+    current.y--;
+    mergePiece();
+    clearLines();
+    spawnPiece();
+    dropCounter = 0;
+}
+
+function clearLines() {
+    const fullRows = [];
+
+    for (let y = 0; y < ROWS; y++) {
+        if (board[y].every(cell => cell !== null)) {
+            fullRows.push(y);
+        }
+    }
+
+    if (fullRows.length === 0) return;
+
+    const bombPositions = [];
+
+    for (const y of fullRows) {
+        for (let x = 0; x < COLS; x++) {
+            if (board[y][x] && board[y][x].bomb) {
+                bombPositions.push({ x, y });
+            }
+        }
+    }
+
+    if (bombPositions.length > 0) {
+        for (const bomb of bombPositions) {
+            explodeBomb(bomb.x, bomb.y, fullRows);
+        }
+    }
+
+    for (let i = fullRows.length - 1; i >= 0; i--) {
+        board.splice(fullRows[i], 1);
+        board.unshift(Array(COLS).fill(null));
+    }
+
+    if (bombPositions.length > 0) {
+        applyGravityAfterExplosion();
+    }
+
+    const points = [0, 100, 300, 500, 800];
+    score += points[fullRows.length] * level;
+    score += bombPositions.length * 150;
+
+    lines += fullRows.length;
+    level = Math.floor(lines / 10) + 1;
+    dropInterval = Math.max(100, 800 - (level - 1) * 70);
+
+    updateUI();
+    playClearSound();
+
+    if (bombPositions.length > 0) {
+        setTimeout(playBombSound, 90);
+        document.getElementById("status").textContent = "💣 炸彈啟動！方塊自然下落";
+        setTimeout(() => {
+            if (!gameOver && !paused) {
+                document.getElementById("status").textContent = "";
+            }
+        }, 900);
+    }
+}
+
+function explodeBomb(cx, cy, fullRows) {
+    const fullRowSet = new Set(fullRows);
+
+    for (let y = cy - 1; y <= cy + 1; y++) {
+        for (let x = cx - 1; x <= cx + 1; x++) {
+            if (
+                y >= 0 &&
+                y < ROWS &&
+                x >= 0 &&
+                x < COLS &&
+                !fullRowSet.has(y)
+            ) {
+                board[y][x] = null;
+            }
+        }
+    }
+}
+
+function applyGravityAfterExplosion() {
+    for (let x = 0; x < COLS; x++) {
+        const stack = [];
+
+        for (let y = ROWS - 1; y >= 0; y--) {
+            if (board[y][x] !== null) {
+                stack.push(board[y][x]);
+            }
+        }
+
+        for (let y = ROWS - 1; y >= 0; y--) {
+            board[y][x] = stack.length > 0 ? stack.shift() : null;
+        }
+    }
+
+    clearExtraLinesAfterGravity();
+}
+
+function clearExtraLinesAfterGravity() {
+    let extraCleared = 0;
+
+    for (let y = ROWS - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell !== null)) {
+            board.splice(y, 1);
+            board.unshift(Array(COLS).fill(null));
+            extraCleared++;
+            y++;
+        }
+    }
+
+    if (extraCleared > 0) {
+        const points = [0, 100, 300, 500, 800];
+        score += points[Math.min(extraCleared, 4)] * level;
+        lines += extraCleared;
+        level = Math.floor(lines / 10) + 1;
+        dropInterval = Math.max(100, 800 - (level - 1) * 70);
+    }
+}
+
+function spawnPiece() {
+    current = nextPiece;
+    current.x = Math.floor(COLS / 2) - 2;
+    current.y = 0;
+
+    nextPiece = randomPiece();
+    drawNextPiece();
+
+    if (collide(current)) {
+        gameOver = true;
+        document.getElementById("status").textContent = "遊戲結束！按 R 重新開始";
+    }
+}
+
+function updateUI() {
+    document.getElementById("score").textContent = score;
+    document.getElementById("lines").textContent = lines;
+    document.getElementById("level").textContent = level;
+}
+
+function update(time = 0) {
+    if (gameOver) {
+        drawBoard();
+        return;
+    }
+
+    if (!paused) {
+        const deltaTime = time - lastTime;
+        lastTime = time;
+        dropCounter += deltaTime;
+
+        if (dropCounter > dropInterval) {
+            dropPiece();
+        }
+
+        drawBoard();
+    }
+
+    animationId = requestAnimationFrame(update);
+}
+
+function togglePause() {
+    if (gameOver) return;
+
+    paused = !paused;
+    document.getElementById("status").textContent = paused ? "已暫停" : "";
+    lastTime = performance.now();
+    drawBoard();
+}
+
+function toggleGhost() {
+    ghostEnabled = !ghostEnabled;
+
+    const button = document.getElementById("ghostBtn");
+    button.textContent = ghostEnabled ? "鬼影：開" : "鬼影：關";
+
+    drawBoard();
+}
+
+function restartGame() {
+    cancelAnimationFrame(animationId);
+
+    board = createBoard();
+    current = randomPiece();
+    nextPiece = randomPiece();
+
+    score = 0;
+    lines = 0;
+    level = 1;
+    dropInterval = 800;
+    lastTime = 0;
+    dropCounter = 0;
+    gameOver = false;
+    paused = false;
+    ghostEnabled = true;
+
+    document.getElementById("status").textContent = "";
+    document.getElementById("ghostBtn").textContent = "鬼影：開";
+
+    updateUI();
+    drawNextPiece();
+    update();
+}
+
+function handleAction(action) {
+    if (audioContext && audioContext.state === "suspended") {
+        audioContext.resume();
+    }
+
+    switch (action) {
+        case "left":
+            movePiece(-1);
+            break;
+        case "right":
+            movePiece(1);
+            break;
+        case "down":
+            dropPiece();
+            break;
+        case "rotate":
+            rotatePiece();
+            break;
+        case "drop":
+            hardDrop();
+            break;
+    }
+
+    drawBoard();
+}
+
+document.addEventListener("keydown", e => {
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (gameOver && e.key.toLowerCase() !== "r") return;
+
+    switch (e.key) {
+        case "ArrowLeft":
+            handleAction("left");
+            break;
+        case "ArrowRight":
+            handleAction("right");
+            break;
+        case "ArrowDown":
+            handleAction("down");
+            break;
+        case "ArrowUp":
+            handleAction("rotate");
+            break;
+        case " ":
+            e.preventDefault();
+            handleAction("drop");
+            break;
+        case "p":
+        case "P":
+            togglePause();
+            break;
+        case "r":
+        case "R":
+            restartGame();
+            break;
+    }
+});
+
+document.querySelectorAll("[data-action]").forEach(button => {
+    let intervalId = null;
+    const action = button.dataset.action;
+
+    button.addEventListener("pointerdown", e => {
+        e.preventDefault();
+
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        handleAction(action);
+
+        if (action === "left" || action === "right" || action === "down") {
+            intervalId = setInterval(() => {
+                handleAction(action);
+            }, 120);
+        }
+    });
+
+    button.addEventListener("pointerup", () => clearInterval(intervalId));
+    button.addEventListener("pointerleave", () => clearInterval(intervalId));
+    button.addEventListener("pointercancel", () => clearInterval(intervalId));
+});
+
+let touchStartX = 0;
+let touchStartY = 0;
+let longPressTimer = null;
+let longPressed = false;
+
+canvas.addEventListener("touchstart", e => {
+    if (e.touches.length !== 1) return;
+
+    e.preventDefault();
+
+    if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    const touch = e.touches[0];
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    longPressed = false;
+
+    longPressTimer = setTimeout(() => {
+        longPressed = true;
+        handleAction("drop");
+    }, 450);
+}, { passive: false });
+
+canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener("touchend", e => {
+    e.preventDefault();
+    clearTimeout(longPressTimer);
+
+    if (longPressed) return;
+
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const threshold = 30;
+
+    if (absX < threshold && absY < threshold) {
+        handleAction("rotate");
+        return;
+    }
+
+    if (absX > absY) {
+        handleAction(dx > 0 ? "right" : "left");
+    } else {
+        handleAction(dy > 0 ? "down" : "rotate");
+    }
+}, { passive: false });
+
+window.addEventListener("contextmenu", e => e.preventDefault());
+
+restartGame();
+</script>
+
+</body>
+</html>
