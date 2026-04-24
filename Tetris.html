@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>炸彈重力版俄羅斯方塊 v6</title>
+<title>炸彈重力版俄羅斯方塊 v7</title>
 
 <style>
 * {
@@ -20,6 +20,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .game-container {
@@ -139,47 +140,104 @@ button {
 @media (max-width: 800px) {
     body {
         align-items: flex-start;
+        overflow: hidden;
     }
 
     .game-container {
-        width: 100%;
-        min-height: 100vh;
+        width: 100vw;
+        height: 100vh;
         border-radius: 0;
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
         justify-items: center;
-        padding: 10px;
-        gap: 10px;
+        padding: 6px 8px;
+        gap: 6px;
     }
 
     #board {
-        width: min(94vw, 360px);
-        max-height: 58vh;
+        width: min(92vw, 330px);
+        max-height: 52vh;
+        aspect-ratio: 1 / 2;
     }
 
     .side-panel {
         width: min(94vw, 360px);
-        gap: 8px;
+        gap: 6px;
     }
 
     h1 {
-        font-size: 22px;
+        font-size: 20px;
+        line-height: 1.1;
     }
 
     .next-box {
-        display: none;
+        display: block;
+        padding: 5px;
+    }
+
+    .next-box .label {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+
+    #next {
+        width: 64px;
+        height: 64px;
+    }
+
+    .info-grid {
+        gap: 6px;
+    }
+
+    .box {
+        padding: 6px;
+    }
+
+    .label {
+        font-size: 12px;
+    }
+
+    .value {
+        font-size: 19px;
+    }
+
+    .button-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .main-btn {
+        font-size: 13px;
+        padding: 8px 4px;
+    }
+
+    .touch-controls {
+        gap: 6px;
+    }
+
+    .control-row {
+        gap: 6px;
+    }
+
+    .touch-btn {
+        width: 62px;
+        height: 42px;
+        font-size: 20px;
+    }
+
+    .drop-btn {
+        width: 130px;
+        height: 42px;
+        font-size: 15px;
     }
 
     .desktop-help {
         display: none;
     }
 
-    .button-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    .main-btn {
-        font-size: 14px;
-        padding: 9px 6px;
+    .status {
+        font-size: 13px;
+        min-height: 18px;
     }
 }
 </style>
@@ -219,17 +277,17 @@ button {
             <button id="ghostBtn" class="main-btn" onclick="toggleGhost()">鬼影：開</button>
         </div>
 
-		<div class="touch-controls">
-			<div class="control-row">
-				<button class="touch-btn" data-action="left">←</button>
-				<button class="touch-btn" data-action="rotate">↻</button>
-				<button class="touch-btn" data-action="right">→</button>
-			</div>
-			<div class="control-row">
-				<button class="touch-btn" data-action="down">↓</button>
-				<button class="drop-btn" data-action="drop">直接落下</button>
-			</div>
-		</div>
+        <div class="touch-controls">
+            <div class="control-row">
+                <button class="touch-btn" data-action="left">←</button>
+                <button class="touch-btn" data-action="rotate">↻</button>
+                <button class="touch-btn" data-action="right">→</button>
+            </div>
+            <div class="control-row">
+                <button class="touch-btn" data-action="down">↓</button>
+                <button class="drop-btn" data-action="drop">直接落下</button>
+            </div>
+        </div>
 
         <div class="box help desktop-help">
             ← →：移動　↓：加速<br>
@@ -290,7 +348,6 @@ function playTone(freq, duration, type = "sine", volume = 0.08) {
 
     oscillator.type = type;
     oscillator.frequency.value = freq;
-
     gain.gain.setValueAtTime(volume, audioContext.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 
