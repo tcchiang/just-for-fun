@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>手機優化版踩地雷</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Microsoft JhengHei", Arial, sans-serif;
+  text-align: center;
+  background: linear-gradient(#5fd3ff, #c9f4ff 35%, #9df37d 100%);
+  color: #4a2c1a;
+  touch-action: manipulation;
+}
+
+.wrapper {
+  max-width: 1000px;
+  margin: auto;
+  padding: 12px;
+}
+
+.title {
+  font-size: 46px;
+  font-weight: 900;
+  color: #ff7a2f;
+  text-shadow: 3px 3px 0 white, 5px 5px 0 #4fb8ff;
+  margin: 12px 0;
+}
+
+.panel {
+  background: rgba(255,255,255,0.92);
+  border: 5px solid white;
+  border-radius: 24px;
+  padding: 14px;
+  margin: 12px auto;
+  box-shadow: 0 7px 0 #46a9e8;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+select, button {
+  font-size: 17px;
+  font-weight: bold;
+  border: none;
+  border-radius: 18px;
+  padding: 12px 16px;
+}
+
+select {
+  background: #fff8df;
+  border: 3px solid #f2c56b;
+}
+
+button {
+  background: linear-gradient(#ffe36b, #ffb92e);
+  box-shadow: 0 5px 0 #d48a00;
+}
+
+button:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #d48a00;
+}
+
+.mode-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mode-btn {
+  font-size: 22px;
+  padding: 16px 10px;
+  border-radius: 20px;
+}
+
+.mode-btn.active {
+  outline: 5px solid #ff5c93;
+  background: linear-gradient(#ff9fcb, #ff5c93);
+  color: white;
+}
+
+.info-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.info-card {
+  min-width: 120px;
+  background: #fff3db;
+  border: 4px solid white;
+  border-radius: 20px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 0 #e6b66b;
+}
+
+.label {
+  font-size: 15px;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 900;
+}
+
+#status {
+  min-height: 34px;
+  font-size: 24px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 2px 2px 0 #ff5c93;
+}
+
+.game-area {
+  width: 100%;
+  overflow-x: auto;
+  padding: 10px;
+}
+
+#board {
+  display: grid;
+  gap: 4px;
+  justify-content: center;
+  margin: auto;
+  width: max-content;
+}
+
+.cell {
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(#b8d7ff, #77a6ff);
+  border: 3px solid #e4f0ff;
+  border-radius: 10px;
+  font-size: 21px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,0.15);
+}
+
+.cell::before {
+  content: "★";
+  color: rgba(255,255,255,0.75);
+}
+
+.cell.open {
+  background: #fff0d2;
+  border-color: #e9c995;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.12);
+}
+
+.cell.open::before {
+  content: "";
+}
+
+.cell.flag::before {
+  content: "🚩";
+}
+
+.cell.mine {
+  background: #ffe1ec;
+}
+
+.cell.mine::before {
+  content: "🐾";
+  font-size: 23px;
+}
+
+.leaderboard {
+  max-width: 520px;
+  text-align: left;
+}
+
+.leaderboard h2 {
+  text-align: center;
+  color: #ff4d82;
+}
+
+.mobile-note {
+  font-weight: bold;
+  color: #7a4a16;
+  margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+  .title { font-size: 38px; }
+
+  .cell {
+    width: 34px;
+    height: 34px;
+    font-size: 19px;
+  }
+
+  .mode-btn {
+    font-size: 20px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+  <div class="title">💣 踩地雷</div>
+
+  <div class="panel">
+    <div class="controls">
+      <select id="level" onchange="init()">
+        <option value="easy">🟢 初級 6×6，5 顆</option>
+        <option value="normal" selected>🔵 中級 8×8，12 顆</option>
+        <option value="hard">🟣 高級 12×12，25 顆</option>
+        <option value="expert">🔴 專家 15×15，50 顆</option>
+      </select>
+
+      <button onclick="init()">↻ 重新開始</button>
+      <button onclick="toggleSound()">🔊 音效：<span id="soundText">開</span></button>
+    </div>
+
+    <div class="mode-bar">
+      <button id="openModeBtn" class="mode-btn active" onclick="setMode('open')">
+        👆 翻開模式
+      </button>
+      <button id="flagModeBtn" class="mode-btn" onclick="setMode('flag')">
+        🚩 插旗模式
+      </button>
+    </div>
+
+    <div class="mobile-note">
+      手機建議：先選模式，再點格子。不用長按。
+    </div>
+
+    <div class="info-row">
+      <div class="info-card">
+        <div class="label">⏱ 時間</div>
+        <div class="value"><span id="timer">0</span></div>
+      </div>
+      <div class="info-card">
+        <div class="label">🚩 旗子</div>
+        <div class="value"><span id="flagCount">0</span>/<span id="mineCount">0</span></div>
+      </div>
+      <div class="info-card">
+        <div class="label">👑 狀態</div>
+        <div class="value" id="gameState">遊戲中</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="panel game-area">
+    <div id="board"></div>
+  </div>
+
+  <div class="panel leaderboard">
+    <h2>🏆 本機排行榜</h2>
+    <div id="rankList"></div>
+  </div>
+</div>
+
+<script>
+let ROWS = 10;
+let COLS = 10;
+let MINES = 15;
+
+let board = [];
+let gameOver = false;
+let firstClick = true;
+let mode = "open";
+
+let timer = 0;
+let timerId = null;
+let soundOn = true;
+
+const levels = {
+  easy:   { rows: 6,  cols: 6,  mines: 5, name: "初級" },
+  normal: { rows: 8, cols: 8, mines: 12, name: "中級" },
+  hard:   { rows: 12, cols: 12, mines: 25, name: "高級" },
+  expert: { rows: 15, cols: 15, mines: 50, name: "專家" }
+};
+
+function setMode(newMode) {
+  mode = newMode;
+
+  document.getElementById("openModeBtn").classList.toggle("active", mode === "open");
+  document.getElementById("flagModeBtn").classList.toggle("active", mode === "flag");
+}
+
+function init() {
+  const levelKey = document.getElementById("level").value;
+  const level = levels[levelKey];
+
+  ROWS = level.rows;
+  COLS = level.cols;
+  MINES = level.mines;
+
+  board = [];
+  gameOver = false;
+  firstClick = true;
+  timer = 0;
+  mode = "open";
+
+  clearInterval(timerId);
+  timerId = null;
+
+  document.getElementById("timer").innerText = "0";
+  document.getElementById("status").innerText = "";
+  document.getElementById("gameState").innerText = "遊戲中";
+  document.getElementById("mineCount").innerText = MINES;
+  document.getElementById("flagCount").innerText = "0";
+
+  setMode("open");
+
+  for (let r = 0; r < ROWS; r++) {
+    board[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      board[r][c] = {
+        mine: false,
+        open: false,
+        flag: false,
+        count: 0
+      };
+    }
+  }
+
+  render();
+  showLeaderboard();
+}
+
+function startTimer() {
+  if (timerId !== null) return;
+
+  timerId = setInterval(() => {
+    timer++;
+    document.getElementById("timer").innerText = timer;
+  }, 1000);
+}
+
+function placeMines(safeR, safeC) {
+  let placed = 0;
+
+  while (placed < MINES) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+
+    const safeArea =
+      Math.abs(r - safeR) <= 1 &&
+      Math.abs(c - safeC) <= 1;
+
+    if (!board[r][c].mine && !safeArea) {
+      board[r][c].mine = true;
+      placed++;
+    }
+  }
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      board[r][c].count = countMines(r, c);
+    }
+  }
+}
+
+function countMines(r, c) {
+  let count = 0;
+
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr;
+      const nc = c + dc;
+
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+        if (board[nr][nc].mine) count++;
+      }
+    }
+  }
+
+  return count;
+}
+
+function render() {
+  const boardDiv = document.getElementById("board");
+  const cellSize = COLS >= 30 ? 28 : 38;
+
+  boardDiv.style.gridTemplateColumns = `repeat(${COLS}, ${cellSize}px)`;
+  boardDiv.innerHTML = "";
+
+  let flags = 0;
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const data = board[r][c];
+
+      if (data.flag) flags++;
+
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.style.width = cellSize + "px";
+      cell.style.height = cellSize + "px";
+
+      if (data.open) {
+        cell.classList.add("open");
+
+        if (data.mine) {
+          cell.classList.add("mine");
+        } else if (data.count > 0) {
+          cell.textContent = data.count;
+          cell.style.color = numberColor(data.count);
+        }
+      } else if (data.flag) {
+        cell.classList.add("flag");
+      }
+
+      addCellEvents(cell, r, c);
+      boardDiv.appendChild(cell);
+    }
+  }
+
+  document.getElementById("flagCount").innerText = flags;
+}
+
+function addCellEvents(cell, r, c) {
+  cell.addEventListener("click", () => {
+    handleCellAction(r, c);
+  });
+
+  cell.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    toggleFlag(r, c);
+  });
+}
+
+function handleCellAction(r, c) {
+  if (mode === "flag") {
+    toggleFlag(r, c);
+  } else {
+    openCell(r, c);
+  }
+}
+
+function toggleFlag(r, c) {
+  if (gameOver || board[r][c].open) return;
+
+  board[r][c].flag = !board[r][c].flag;
+  playSound("flag");
+  render();
+}
+
+function openCell(r, c) {
+  if (gameOver || board[r][c].open || board[r][c].flag) return;
+
+  if (firstClick) {
+    firstClick = false;
+    placeMines(r, c);
+    startTimer();
+  }
+
+  board[r][c].open = true;
+  playSound("open");
+
+  if (board[r][c].mine) {
+    gameOver = true;
+    clearInterval(timerId);
+    revealAll();
+    playSound("lose");
+
+    document.getElementById("status").innerText = "🐾 哎呀！踩到可愛陷阱了！";
+    document.getElementById("gameState").innerText = "失敗";
+    return;
+  }
+
+  if (board[r][c].count === 0) {
+    openEmptyArea(r, c);
+  }
+
+  checkWin();
+  render();
+}
+
+function openEmptyArea(r, c) {
+  for (let dr = -1; dr <= 1; dr++) {
+    for (let dc = -1; dc <= 1; dc++) {
+      const nr = r + dr;
+      const nc = c + dc;
+
+      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+        if (!board[nr][nc].open && !board[nr][nc].flag && !board[nr][nc].mine) {
+          board[nr][nc].open = true;
+
+          if (board[nr][nc].count === 0) {
+            openEmptyArea(nr, nc);
+          }
+        }
+      }
+    }
+  }
+}
+
+function revealAll() {
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      board[r][c].open = true;
+    }
+  }
+
+  render();
+}
+
+function checkWin() {
+  const safeCells = ROWS * COLS - MINES;
+  let opened = 0;
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (board[r][c].open && !board[r][c].mine) {
+        opened++;
+      }
+    }
+  }
+
+  if (opened === safeCells) {
+    gameOver = true;
+    clearInterval(timerId);
+    playSound("win");
+
+    document.getElementById("status").innerText =
+      `🎉 恭喜過關！完成時間：${timer} 秒`;
+
+    document.getElementById("gameState").innerText = "勝利";
+
+    saveScore();
+    showLeaderboard();
+  }
+}
+
+function saveScore() {
+  const levelKey = document.getElementById("level").value;
+  const key = "mobile_cute_minesweeper_rank_" + levelKey;
+
+  let scores = JSON.parse(localStorage.getItem(key) || "[]");
+
+  scores.push({
+    time: timer,
+    date: new Date().toLocaleString()
+  });
+
+  scores.sort((a, b) => a.time - b.time);
+  scores = scores.slice(0, 5);
+
+  localStorage.setItem(key, JSON.stringify(scores));
+}
+
+function showLeaderboard() {
+  const levelKey = document.getElementById("level").value;
+  const levelName = levels[levelKey].name;
+  const key = "mobile_cute_minesweeper_rank_" + levelKey;
+
+  const scores = JSON.parse(localStorage.getItem(key) || "[]");
+  const rankList = document.getElementById("rankList");
+
+  if (scores.length === 0) {
+    rankList.innerHTML = `<p>${levelName}目前尚無紀錄。</p>`;
+    return;
+  }
+
+  let html = `<strong>${levelName}</strong><ol>`;
+
+  for (const s of scores) {
+    html += `<li>🏅 ${s.time} 秒 <small>(${s.date})</small></li>`;
+  }
+
+  html += "</ol>";
+  rankList.innerHTML = html;
+}
+
+function playSound(type) {
+  if (!soundOn) return;
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  oscillator.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === "open") {
+    oscillator.frequency.value = 560;
+    gain.gain.value = 0.035;
+  } else if (type === "flag") {
+    oscillator.frequency.value = 780;
+    gain.gain.value = 0.05;
+  } else if (type === "win") {
+    oscillator.frequency.value = 980;
+    gain.gain.value = 0.08;
+  } else if (type === "lose") {
+    oscillator.frequency.value = 160;
+    gain.gain.value = 0.09;
+  }
+
+  oscillator.type = "sine";
+  oscillator.start();
+
+  setTimeout(() => {
+    oscillator.stop();
+    audioCtx.close();
+  }, type === "lose" ? 380 : 120);
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  document.getElementById("soundText").innerText = soundOn ? "開" : "關";
+}
+
+function numberColor(n) {
+  const colors = {
+    1: "#2477ff",
+    2: "#42a832",
+    3: "#ff4b4b",
+    4: "#794cff",
+    5: "#ff8c1a",
+    6: "#00a6a6",
+    7: "#222",
+    8: "#777"
+  };
+
+  return colors[n] || "#222";
+}
+
+init();
+</script>
+
+</body>
+</html>

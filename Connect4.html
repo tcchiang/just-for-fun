@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>可愛風四子棋</title>
+  <style>
+    :root {
+      --bg1: #ffe9f3;
+      --bg2: #d8f6ff;
+      --panel: rgba(255, 255, 255, 0.9);
+      --board: #8ec5ff;
+      --board-dark: #5aa7ed;
+      --p1: #ff7aa8;
+      --p1-dark: #e94e84;
+      --p2: #ffd166;
+      --p2-dark: #f4a800;
+      --empty: #fff8fd;
+      --text: #4b3f57;
+      --shadow: rgba(84, 74, 105, 0.18);
+      --win: #7bd88f;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; min-height: 100%; margin: 0; overflow-x: hidden; }
+
+    body {
+      font-family: "Comic Sans MS", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      touch-action: manipulation;
+    }
+
+    .app { width: 100%; max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+    .header {
+      background: var(--panel);
+      border: 2px solid rgba(255,255,255,.78);
+      border-radius: 20px;
+      padding: 10px 12px;
+      box-shadow: 0 8px 20px var(--shadow);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(24px, 8vw, 42px);
+      line-height: 1.05;
+      letter-spacing: .5px;
+      text-shadow: 0 3px 0 rgba(255,255,255,.9);
+      white-space: nowrap;
+    }
+
+    .subtitle { margin: 0; font-size: clamp(13px, 3.6vw, 16px); font-weight: 700; color: #7a6d88; }
+
+    .mode-card, .level-card {
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 8px;
+      box-shadow: 0 8px 18px var(--shadow);
+      display: grid;
+      gap: 8px;
+    }
+
+    .mode-card { grid-template-columns: 1fr 1fr; }
+    .level-card { grid-template-columns: repeat(3, 1fr); }
+    .level-card.hidden { display: none; }
+
+    .mode-btn, .level-btn {
+      box-shadow: 0 4px 0 #d8b6cc, 0 6px 12px var(--shadow);
+      background: linear-gradient(180deg, #fff, #ffe7f1);
+      color: #7a5571;
+      border: 2px solid rgba(255,122,168,.28);
+      padding: 9px 10px;
+    }
+
+    .mode-btn.active, .level-btn.active {
+      background: linear-gradient(180deg, #ff9abd, #ff7aa8);
+      color: white;
+      border-color: var(--p1-dark);
+      box-shadow: 0 4px 0 var(--p1-dark), 0 6px 12px var(--shadow);
+    }
+
+    .level-btn.active.medium-active {
+      background: linear-gradient(180deg, #ffd977, #f7b928);
+      border-color: var(--p2-dark);
+      box-shadow: 0 4px 0 var(--p2-dark), 0 6px 12px var(--shadow);
+    }
+
+    .level-btn.active.hard-active {
+      background: linear-gradient(180deg, #9bd4ff, #5aa7ed);
+      border-color: #3388d5;
+      box-shadow: 0 4px 0 #3388d5, 0 6px 12px var(--shadow);
+    }
+
+    .status-card {
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 8px;
+      box-shadow: 0 8px 18px var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: clamp(16px, 4.6vw, 23px);
+      font-weight: 900; min-height: 40px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .tiny-disc {
+      width: 30px; height: 30px; border-radius: 50%;
+      box-shadow: inset 0 -5px 0 rgba(0,0,0,.12), 0 3px 0 rgba(255,255,255,.7);
+      flex: none; position: relative;
+    }
+    .tiny-disc::after { content: ""; position: absolute; width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.7); top: 6px; left: 7px; }
+    .p1 { background: var(--p1); border: 3px solid var(--p1-dark); }
+    .p2 { background: var(--p2); border: 3px solid var(--p2-dark); }
+
+    button {
+      border: 0; border-radius: 999px; padding: 10px 14px;
+      font-size: 16px; font-weight: 900; color: white;
+      background: linear-gradient(180deg, #9bd4ff, #5aa7ed);
+      box-shadow: 0 5px 0 #3388d5, 0 8px 16px var(--shadow);
+      cursor: pointer; touch-action: manipulation; white-space: nowrap;
+    }
+    button:active { transform: translateY(3px); box-shadow: 0 2px 0 #3388d5, 0 5px 12px var(--shadow); }
+
+    .board-wrap { width: 100%; background: rgba(255,255,255,.45); border-radius: 22px; padding: 8px; box-shadow: 0 12px 26px var(--shadow); }
+    .drop-row { width: 100%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-bottom: 7px; }
+
+    .drop-btn {
+      min-width: 0; height: clamp(30px, 8vw, 48px); border-radius: 12px;
+      display: grid; place-items: center; color: #5b93d6;
+      background: rgba(255,255,255,.92); border: 2px dashed rgba(91,147,214,.4);
+      font-size: clamp(18px, 5.8vw, 30px); font-weight: 900;
+      cursor: pointer; user-select: none; touch-action: manipulation;
+    }
+    .drop-btn:active { transform: translateY(2px) scale(.98); background: #fff7c7; }
+    .drop-btn.disabled { opacity: .28; pointer-events: none; }
+
+    .board {
+      width: 100%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px;
+      background: linear-gradient(180deg, var(--board), var(--board-dark));
+      border-radius: 20px; padding: 8px; border: 3px solid rgba(255,255,255,.72);
+      box-shadow: inset 0 -7px 0 rgba(43,111,181,.32), 0 6px 0 #4d94dc;
+    }
+
+    .cell {
+      width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; background: var(--empty);
+      border: 3px solid rgba(66,122,186,.35);
+      box-shadow: inset 0 5px 7px rgba(82,100,145,.18), 0 2px 0 rgba(255,255,255,.52);
+      position: relative; overflow: hidden; min-width: 0; touch-action: manipulation;
+    }
+
+    .disc {
+      position: absolute; inset: 8%; border-radius: 50%; transform: translateY(-420px);
+      animation: fall .28s cubic-bezier(.2, 1.18, .45, 1) forwards;
+      box-shadow: inset 0 -7px 0 rgba(0,0,0,.12), inset 0 5px 0 rgba(255,255,255,.45), 0 4px 7px rgba(0,0,0,.12);
+    }
+    .disc::before, .disc::after { content: ""; position: absolute; border-radius: 50%; background: rgba(255,255,255,.9); }
+    .disc::before { width: 13%; height: 13%; top: 28%; left: 30%; }
+    .disc::after { width: 13%; height: 13%; top: 28%; right: 30%; }
+    .disc .mouth { position: absolute; width: 25%; height: 12%; left: 37.5%; top: 53%; border-bottom: 3px solid rgba(83,54,74,.55); border-radius: 0 0 999px 999px; }
+    .disc.player1 { background: linear-gradient(180deg, #ff9abd, var(--p1)); border: 3px solid var(--p1-dark); }
+    .disc.player2 { background: linear-gradient(180deg, #ffe99c, var(--p2)); border: 3px solid var(--p2-dark); }
+
+    .cell.win-cell { animation: pop .65s ease-in-out infinite alternate; background: #f0fff2; border-color: var(--win); }
+    .rules { background: var(--panel); border-radius: 18px; padding: 10px 12px; box-shadow: 0 6px 16px var(--shadow); font-size: clamp(13px, 3.6vw, 15px); line-height: 1.5; color: #6b6076; }
+    .rules strong { color: #4b3f57; }
+
+    @keyframes fall { 0% { transform: translateY(-420px) scale(.94); } 75% { transform: translateY(6px) scale(1.03, .97); } 100% { transform: translateY(0) scale(1); } }
+    @keyframes pop { from { transform: scale(1); } to { transform: scale(1.07); } }
+    .confetti { pointer-events: none; position: fixed; inset: 0; overflow: hidden; z-index: 10; }
+    .piece { position: absolute; top: -20px; width: 10px; height: 16px; border-radius: 5px; animation: confetti-fall 1.6s linear forwards; }
+    @keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+
+    @media (max-width: 430px) {
+      body { padding: 6px; }
+      .app { gap: 8px; }
+      .header { padding: 8px 10px; border-radius: 18px; }
+      h1 { font-size: clamp(22px, 7.2vw, 32px); }
+      .subtitle { display: none; }
+      .mode-card, .level-card { padding: 7px; gap: 6px; }
+      .mode-btn, .level-btn { padding: 8px 6px; font-size: 14px; }
+      .status-card { grid-template-columns: 1fr auto; padding: 7px; gap: 6px; }
+      .status { font-size: 16px; min-height: 36px; }
+      .tiny-disc { width: 26px; height: 26px; }
+      button { padding: 9px 10px; font-size: 14px; }
+      .board-wrap { padding: 6px; border-radius: 18px; }
+      .drop-row { gap: 4px; margin-bottom: 6px; }
+      .drop-btn { height: 30px; border-radius: 10px; border-width: 2px; }
+      .board { gap: 4px; padding: 6px; border-radius: 16px; border-width: 3px; }
+      .cell { border-width: 2px; }
+      .disc.player1, .disc.player2 { border-width: 2px; }
+      .rules { padding: 8px 10px; }
+    }
+
+    @media (max-width: 360px) {
+      .rules { display: none; }
+      h1 { font-size: 22px; }
+      .status { font-size: 14px; }
+      button { font-size: 13px; padding: 8px 9px; }
+      .mode-btn, .level-btn { font-size: 13px; }
+      .drop-btn { height: 28px; }
+      .board, .drop-row { gap: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="header">
+      <h1>🐾 可愛四子棋 🐾</h1>
+      <p class="subtitle">輪流投下棋子，先連成四顆就獲勝！</p>
+    </section>
+
+    <section class="mode-card">
+      <button class="mode-btn active" id="onePlayerBtn">單人模式 🤖</button>
+      <button class="mode-btn" id="twoPlayerBtn">雙人模式 👥</button>
+    </section>
+
+    <section class="level-card" id="levelCard">
+      <button class="level-btn active" id="easyAiBtn">初級 AI 🌱</button>
+      <button class="level-btn" id="mediumAiBtn">中級 AI 🧠</button>
+      <button class="level-btn" id="hardAiBtn">高級 AI 🔥</button>
+    </section>
+
+    <section class="status-card">
+      <div class="status" id="status">
+        <span class="tiny-disc p1"></span>
+        輪到粉紅小熊
+      </div>
+      <button id="restartBtn">重開 ✨</button>
+    </section>
+
+    <section class="board-wrap">
+      <div class="drop-row" id="dropRow" aria-label="選擇要投入棋子的欄位"></div>
+      <div class="board" id="board" aria-label="四子棋棋盤"></div>
+    </section>
+
+    <section class="rules" id="rules">
+      <strong>玩法：</strong>單人模式：你是粉紅小熊，AI 是黃色小鴨。AI 分為初級、中級、高級，搜尋深度分別為 2、3、4。雙人模式：兩人輪流下。
+    </section>
+  </main>
+
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    const ROWS = 6;
+    const COLS = 7;
+    const EMPTY = 0;
+    const P1 = 1;
+    const P2 = 2;
+    const HUMAN = P1;
+    const AI = P2;
+    const INF = 1000000000;
+
+    let board = [];
+    let currentPlayer = P1;
+    let gameOver = false;
+    let winningCells = [];
+    let mode = 'one';
+    let aiLevel = 'easy';
+    let aiThinking = false;
+
+    const boardEl = document.getElementById('board');
+    const dropRowEl = document.getElementById('dropRow');
+    const statusEl = document.getElementById('status');
+    const restartBtn = document.getElementById('restartBtn');
+    const confettiEl = document.getElementById('confetti');
+    const onePlayerBtn = document.getElementById('onePlayerBtn');
+    const twoPlayerBtn = document.getElementById('twoPlayerBtn');
+    const levelCard = document.getElementById('levelCard');
+    const easyAiBtn = document.getElementById('easyAiBtn');
+    const mediumAiBtn = document.getElementById('mediumAiBtn');
+    const hardAiBtn = document.getElementById('hardAiBtn');
+
+    function initGame() {
+      board = Array.from({ length: ROWS }, () => Array(COLS).fill(EMPTY));
+      currentPlayer = P1;
+      gameOver = false;
+      winningCells = [];
+      aiThinking = false;
+      confettiEl.innerHTML = '';
+      render();
+      updateStatus();
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      onePlayerBtn.classList.toggle('active', mode === 'one');
+      twoPlayerBtn.classList.toggle('active', mode === 'two');
+      levelCard.classList.toggle('hidden', mode !== 'one');
+      initGame();
+    }
+
+    function setAILevel(newLevel) {
+      aiLevel = newLevel;
+      easyAiBtn.classList.toggle('active', aiLevel === 'easy');
+      mediumAiBtn.classList.toggle('active', aiLevel === 'medium');
+      hardAiBtn.classList.toggle('active', aiLevel === 'hard');
+      mediumAiBtn.classList.toggle('medium-active', aiLevel === 'medium');
+      hardAiBtn.classList.toggle('hard-active', aiLevel === 'hard');
+      initGame();
+    }
+
+    function getAIDepth() {
+      if (aiLevel === 'easy') return 2;
+      if (aiLevel === 'medium') return 3;
+      return 4;
+    }
+
+    function getAIName() {
+      if (aiLevel === 'easy') return '初級 AI';
+      if (aiLevel === 'medium') return '中級 AI';
+      return '高級 AI';
+    }
+
+    function render() {
+      renderDropRow();
+      renderBoard();
+    }
+
+    function renderDropRow() {
+      dropRowEl.innerHTML = '';
+      for (let c = 0; c < COLS; c++) {
+        const btn = document.createElement('div');
+        btn.className = 'drop-btn';
+        btn.textContent = '⬇';
+        btn.setAttribute('role', 'button');
+        btn.setAttribute('tabindex', '0');
+        btn.setAttribute('aria-label', `投入第 ${c + 1} 欄`);
+        if (gameOver || aiThinking || board[0][c] !== EMPTY) btn.classList.add('disabled');
+        btn.addEventListener('click', () => handlePlayerMove(c));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handlePlayerMove(c);
+          }
+        });
+        dropRowEl.appendChild(btn);
+      }
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.setAttribute('aria-label', `第 ${r + 1} 列第 ${c + 1} 欄`);
+          cell.addEventListener('click', () => handlePlayerMove(c));
+          if (isWinningCell(r, c)) cell.classList.add('win-cell');
+          if (board[r][c] !== EMPTY) {
+            const disc = document.createElement('div');
+            disc.className = `disc player${board[r][c]}`;
+            const mouth = document.createElement('div');
+            mouth.className = 'mouth';
+            disc.appendChild(mouth);
+            cell.appendChild(disc);
+          }
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function handlePlayerMove(col) {
+      if (gameOver || aiThinking) return;
+      if (mode === 'one' && currentPlayer !== HUMAN) return;
+      dropDisc(col);
+    }
+
+    function dropDisc(col) {
+      if (gameOver || board[0][col] !== EMPTY) return false;
+      const row = getDropRow(col);
+      if (row === -1) return false;
+      board[row][col] = currentPlayer;
+
+      const result = checkWinner(row, col, currentPlayer);
+      if (result.win) {
+        gameOver = true;
+        winningCells = result.cells;
+        render();
+        updateStatus(`${playerName(currentPlayer)}獲勝！🎉`, currentPlayer);
+        launchConfetti();
+        return true;
+      }
+
+      if (isBoardFull()) {
+        gameOver = true;
+        render();
+        updateStatus('平手！🤝', currentPlayer);
+        return true;
+      }
+
+      currentPlayer = currentPlayer === P1 ? P2 : P1;
+      render();
+      updateStatus();
+
+      if (mode === 'one' && currentPlayer === AI && !gameOver) {
+        aiThinking = true;
+        render();
+        updateStatus(`${getAIName()} 思考中…🤖`, AI);
+        setTimeout(makeAIMove, aiLevel === 'hard' ? 260 : 360);
+      }
+      return true;
+    }
+
+    function makeAIMove() {
+      if (gameOver || mode !== 'one') return;
+      const col = chooseAIMove();
+      aiThinking = false;
+      currentPlayer = AI;
+      dropDisc(col);
+    }
+
+    function chooseAIMove() {
+      const validCols = orderedValidCols();
+      if (validCols.length === 0) return 0;
+
+      for (const col of validCols) if (wouldWin(col, AI)) return col;
+      for (const col of validCols) if (wouldWin(col, HUMAN)) return col;
+
+      let bestScore = -INF;
+      let bestCols = [];
+      const depth = getAIDepth();
+
+      for (const col of validCols) {
+        const row = getDropRow(col);
+        board[row][col] = AI;
+        const score = minimax(depth - 1, -INF, INF, false);
+        board[row][col] = EMPTY;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestCols = [col];
+        } else if (score === bestScore) {
+          bestCols.push(col);
+        }
+      }
+
+      return bestCols[Math.floor(Math.random() * bestCols.length)];
+    }
+
+    function minimax(depth, alpha, beta, maximizing) {
+      const terminal = getTerminalScore(depth);
+      if (terminal !== null) return terminal;
+      if (depth === 0 || isBoardFull()) return evaluateBoard();
+
+      const validCols = orderedValidCols();
+
+      if (maximizing) {
+        let value = -INF;
+        for (const col of validCols) {
+          const row = getDropRow(col);
+          board[row][col] = AI;
+          value = Math.max(value, minimax(depth - 1, alpha, beta, false));
+          board[row][col] = EMPTY;
+          alpha = Math.max(alpha, value);
+          if (alpha >= beta) break;
+        }
+        return value;
+      } else {
+        let value = INF;
+        for (const col of validCols) {
+          const row = getDropRow(col);
+          board[row][col] = HUMAN;
+          value = Math.min(value, minimax(depth - 1, alpha, beta, true));
+          board[row][col] = EMPTY;
+          beta = Math.min(beta, value);
+          if (alpha >= beta) break;
+        }
+        return value;
+      }
+    }
+
+    function getTerminalScore(depth) {
+      if (hasPlayerWon(AI)) return 1000000 + depth;
+      if (hasPlayerWon(HUMAN)) return -1000000 - depth;
+      return null;
+    }
+
+    function evaluateBoard() {
+      let score = 0;
+
+      let centerCount = 0;
+      for (let r = 0; r < ROWS; r++) if (board[r][3] === AI) centerCount++;
+      score += centerCount * 7;
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c <= COLS - 4; c++) {
+          score += evaluateWindow([board[r][c], board[r][c+1], board[r][c+2], board[r][c+3]]);
+        }
+      }
+      for (let c = 0; c < COLS; c++) {
+        for (let r = 0; r <= ROWS - 4; r++) {
+          score += evaluateWindow([board[r][c], board[r+1][c], board[r+2][c], board[r+3][c]]);
+        }
+      }
+      for (let r = 0; r <= ROWS - 4; r++) {
+        for (let c = 0; c <= COLS - 4; c++) {
+          score += evaluateWindow([board[r][c], board[r+1][c+1], board[r+2][c+2], board[r+3][c+3]]);
+        }
+      }
+      for (let r = 3; r < ROWS; r++) {
+        for (let c = 0; c <= COLS - 4; c++) {
+          score += evaluateWindow([board[r][c], board[r-1][c+1], board[r-2][c+2], board[r-3][c+3]]);
+        }
+      }
+
+      return score;
+    }
+
+    function evaluateWindow(cells) {
+      const aiCount = cells.filter(v => v === AI).length;
+      const humanCount = cells.filter(v => v === HUMAN).length;
+      const emptyCount = cells.filter(v => v === EMPTY).length;
+
+      let score = 0;
+      if (aiCount === 4) score += 100000;
+      else if (aiCount === 3 && emptyCount === 1) score += 120;
+      else if (aiCount === 2 && emptyCount === 2) score += 18;
+      else if (aiCount === 1 && emptyCount === 3) score += 2;
+
+      if (humanCount === 4) score -= 100000;
+      else if (humanCount === 3 && emptyCount === 1) score -= 145;
+      else if (humanCount === 2 && emptyCount === 2) score -= 22;
+
+      return score;
+    }
+
+    function wouldWin(col, player) {
+      const row = getDropRow(col);
+      if (row === -1) return false;
+      board[row][col] = player;
+      const result = checkWinner(row, col, player).win;
+      board[row][col] = EMPTY;
+      return result;
+    }
+
+    function hasPlayerWon(player) {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === player && checkWinner(r, c, player).win) return true;
+        }
+      }
+      return false;
+    }
+
+    function getValidCols() {
+      const cols = [];
+      for (let c = 0; c < COLS; c++) if (board[0][c] === EMPTY) cols.push(c);
+      return cols;
+    }
+
+    function orderedValidCols() {
+      const order = [3, 2, 4, 1, 5, 0, 6];
+      return order.filter(c => board[0][c] === EMPTY);
+    }
+
+    function getDropRow(col) {
+      for (let r = ROWS - 1; r >= 0; r--) if (board[r][col] === EMPTY) return r;
+      return -1;
+    }
+
+    function checkWinner(row, col, player) {
+      const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (const [dr, dc] of directions) {
+        const line = [
+          ...collect(row, col, -dr, -dc, player).reverse(),
+          [row, col],
+          ...collect(row, col, dr, dc, player)
+        ];
+        if (line.length >= 4) return { win: true, cells: line.slice(0, 4) };
+      }
+      return { win: false, cells: [] };
+    }
+
+    function collect(row, col, dr, dc, player) {
+      const cells = [];
+      let r = row + dr;
+      let c = col + dc;
+      while (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) {
+        cells.push([r, c]);
+        r += dr;
+        c += dc;
+      }
+      return cells;
+    }
+
+    function isBoardFull() { return board[0].every(cell => cell !== EMPTY); }
+    function isWinningCell(r, c) { return winningCells.some(([wr, wc]) => wr === r && wc === c); }
+    function playerName(player) { return player === P1 ? '粉紅小熊' : '黃色小鴨'; }
+
+    function updateStatus(customText, player = currentPlayer) {
+      if (customText) {
+        statusEl.innerHTML = `<span class="tiny-disc ${player === P1 ? 'p1' : 'p2'}"></span>${customText}`;
+        return;
+      }
+      if (mode === 'one') {
+        const label = currentPlayer === HUMAN ? '輪到你：粉紅小熊' : `輪到 ${getAIName()}：黃色小鴨`;
+        statusEl.innerHTML = `<span class="tiny-disc ${currentPlayer === P1 ? 'p1' : 'p2'}"></span>${label}`;
+      } else {
+        statusEl.innerHTML = `<span class="tiny-disc ${currentPlayer === P1 ? 'p1' : 'p2'}"></span>輪到${playerName(currentPlayer)}`;
+      }
+    }
+
+    function launchConfetti() {
+      const colors = ['#ff7aa8', '#ffd166', '#7bd88f', '#8ec5ff', '#c99bff'];
+      confettiEl.innerHTML = '';
+      for (let i = 0; i < 70; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        piece.style.left = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay = Math.random() * .5 + 's';
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+        confettiEl.appendChild(piece);
+      }
+      setTimeout(() => confettiEl.innerHTML = '', 2300);
+    }
+
+    restartBtn.addEventListener('click', initGame);
+    onePlayerBtn.addEventListener('click', () => setMode('one'));
+    twoPlayerBtn.addEventListener('click', () => setMode('two'));
+    easyAiBtn.addEventListener('click', () => setAILevel('easy'));
+    mediumAiBtn.addEventListener('click', () => setAILevel('medium'));
+    hardAiBtn.addEventListener('click', () => setAILevel('hard'));
+    initGame();
+  </script>
+</body>
+</html>
