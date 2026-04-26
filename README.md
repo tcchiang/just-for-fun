@@ -4,6 +4,7 @@ just for fun
 | Game  | Descriptions |
 | ----- | -------- |
 | [2048](https://tcchiang.github.io/just-for-fun/2048-game.html) | 2048 |
+| [8-puzzle](https://tcchiang.github.io/just-for-fun/8-puzzle.html) | 8-puzzle |
 | [Breakout](https://tcchiang.github.io/just-for-fun/Breakout.html) | Breakout |
 | [CandyCrush](https://tcchiang.github.io/just-for-fun/CandyCrush.html) | CandyCrush |
 | [Connect4](https://tcchiang.github.io/just-for-fun/Connect4.html) | Connect4 |
