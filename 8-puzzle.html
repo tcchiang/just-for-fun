@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>照片 8-Puzzle 拼圖遊戲</title>
+
+<link rel="stylesheet" href="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.css">
+
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  font-family: "Noto Sans TC", system-ui, sans-serif;
+  background: linear-gradient(135deg, #ffe7f0, #dff4ff);
+  color: #333;
+  overscroll-behavior: none;
+}
+
+header {
+  text-align: center;
+  padding: 12px 10px 6px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(22px, 6vw, 30px);
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: #666;
+  font-size: 14px;
+}
+
+.app {
+  width: min(1000px, 96vw);
+  margin: 0 auto 24px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+
+.panel {
+  background: rgba(255,255,255,0.9);
+  border-radius: 22px;
+  padding: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+}
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+button, label.file-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #ff80ab;
+  color: white;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(255,128,171,0.35);
+  user-select: none;
+}
+
+button.secondary { background: #4fc3f7; }
+button.gray { background: #8d99ae; }
+button.gold { background: #ffb703; }
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+input[type="file"] { display: none; }
+
+.crop-area {
+  display: none;
+  margin-top: 12px;
+}
+
+.crop-wrap {
+  max-height: 58vh;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+}
+
+#cropImage {
+  max-width: 100%;
+  display: block;
+}
+
+.game-area {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+#board {
+  width: min(92vw, 530px);
+  aspect-ratio: 1 / 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  padding: 5px;
+  background: #ffffffaa;
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 3px #fff;
+  touch-action: none;
+  user-select: none;
+}
+
+.tile {
+  border-radius: 15px;
+  background-size: 300% 300%;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  box-shadow: 0 5px 12px rgba(0,0,0,0.18);
+  transition: transform 0.12s, box-shadow 0.12s, outline 0.12s;
+  position: relative;
+}
+
+.tile:active { transform: scale(0.96); }
+
+.tile.empty {
+  background: repeating-linear-gradient(
+    45deg,
+    #f0f0f0,
+    #f0f0f0 10px,
+    #ffffff 10px,
+    #ffffff 20px
+  );
+  box-shadow: inset 0 0 0 2px #ddd;
+  cursor: default;
+}
+
+.tile.correct::after {
+  content: "✓";
+  position: absolute;
+  right: 7px;
+  top: 5px;
+  background: rgba(255,255,255,0.85);
+  color: #00a676;
+  border-radius: 999px;
+  font-weight: 900;
+  padding: 1px 6px;
+  font-size: 13px;
+}
+
+.tile.hint {
+  outline: 6px solid #ffea00;
+  box-shadow: 0 0 0 6px rgba(255,234,0,0.35), 0 0 28px rgba(255,183,3,0.9);
+  animation: pulseHint 0.65s ease-in-out infinite alternate;
+}
+
+@keyframes pulseHint {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+.mobile-stats {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat {
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: center;
+}
+
+.stat .num {
+  font-size: 24px;
+  font-weight: 900;
+  color: #ff5c8a;
+}
+
+.preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hint-text {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff;
+  color: #555;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.hint {
+  line-height: 1.7;
+  color: #555;
+  font-size: 14px;
+}
+
+.win {
+  display: none;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff3b0;
+  color: #6a4c00;
+  text-align: center;
+  font-weight: 900;
+  font-size: 20px;
+}
+
+.side h3 {
+  margin-top: 0;
+}
+
+@media (max-width: 820px) {
+  .app {
+    grid-template-columns: 1fr;
+    width: 96vw;
+    gap: 10px;
+  }
+
+  .side {
+    order: 2;
+  }
+
+  .main {
+    order: 1;
+  }
+
+  .desktop-stats {
+    display: none;
+  }
+
+  .mobile-stats {
+    display: grid;
+  }
+
+  .toolbar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  button, label.file-btn {
+    padding: 11px 8px;
+    font-size: 14px;
+  }
+
+  .panel {
+    padding: 11px;
+    border-radius: 20px;
+  }
+
+  #board {
+    width: min(94vw, 500px);
+  }
+
+  .preview {
+    max-width: 260px;
+    margin: 0 auto;
+  }
+
+  .hint {
+    text-align: center;
+  }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>🧩 照片 8-Puzzle 拼圖遊戲</h1>
+  <div class="subtitle">上傳照片 → 裁切正方形 → 九宮格滑動拼圖</div>
+</header>
+
+<main class="app">
+  <section class="panel main">
+    <div class="toolbar">
+      <label class="file-btn">
+        📷 上傳
+        <input id="fileInput" type="file" accept="image/*">
+      </label>
+      <button id="useCropBtn" class="secondary" disabled>使用裁切</button>
+      <button id="shuffleBtn" disabled>重新打亂</button>
+      <button id="hintBtn" class="gold" disabled>💡 提示</button>
+      <button id="resetBtn" class="gray" disabled>看答案</button>
+    </div>
+
+    <div id="cropArea" class="crop-area">
+      <p class="hint">拖曳或縮放裁切框，選擇你想用的正方形範圍。</p>
+      <div class="crop-wrap">
+        <img id="cropImage" alt="裁切照片">
+      </div>
+    </div>
+
+    <div class="game-area">
+      <div id="board"></div>
+    </div>
+
+    <div class="mobile-stats">
+      <div class="stat">
+        <div>步數</div>
+        <div id="movesMobile" class="num">0</div>
+      </div>
+      <div class="stat">
+        <div>時間</div>
+        <div id="timeMobile" class="num">0</div>
+      </div>
+    </div>
+
+    <div id="hintMessage" class="hint-text">提示會告訴你下一步該移動哪一片。手機上也可以直接滑動拼塊。</div>
+    <div id="winBox" class="win">🎉 恭喜完成拼圖！</div>
+  </section>
+
+  <aside class="panel side">
+    <div class="info-card stats desktop-stats">
+      <div class="stat">
+        <div>步數</div>
+        <div id="moves" class="num">0</div>
+      </div>
+      <div class="stat">
+        <div>時間</div>
+        <div id="time" class="num">0</div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h3>原圖預覽</h3>
+      <div class="preview">
+        <img id="previewImg" alt="原圖預覽">
+      </div>
+    </div>
+
+    <div class="hint">
+      <b>玩法：</b><br>
+      點選空白格旁邊的拼塊，或在手機上滑動拼塊。<br>
+      按「提示」會高亮建議移動的拼塊。
+    </div>
+  </aside>
+</main>
+
+<script src="https://unpkg.com/cropperjs@1.6.2/dist/cropper.min.js"></script>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const cropImage = document.getElementById("cropImage");
+const cropArea = document.getElementById("cropArea");
+const useCropBtn = document.getElementById("useCropBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const hintBtn = document.getElementById("hintBtn");
+const resetBtn = document.getElementById("resetBtn");
+const board = document.getElementById("board");
+
+const movesEl = document.getElementById("moves");
+const timeEl = document.getElementById("time");
+const movesMobileEl = document.getElementById("movesMobile");
+const timeMobileEl = document.getElementById("timeMobile");
+
+const previewImg = document.getElementById("previewImg");
+const winBox = document.getElementById("winBox");
+const hintMessage = document.getElementById("hintMessage");
+
+let cropper = null;
+let imageURL = "";
+let tiles = [0,1,2,3,4,5,6,7,8];
+let solved = [0,1,2,3,4,5,6,7,8];
+let emptyIndex = 8;
+let moves = 0;
+let seconds = 0;
+let timer = null;
+let started = false;
+let hintIndex = -1;
+let hintTimer = null;
+
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartIndex = -1;
+
+function makeDefaultImage() {
+  const c = document.createElement("canvas");
+  c.width = 900;
+  c.height = 900;
+  const ctx = c.getContext("2d");
+
+  const grad = ctx.createLinearGradient(0,0,900,900);
+  grad.addColorStop(0, "#ff9a9e");
+  grad.addColorStop(0.5, "#fad0c4");
+  grad.addColorStop(1, "#a1c4fd");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,900,900);
+
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.beginPath();
+  ctx.arc(450,380,180,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.font = "bold 88px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ff5c8a";
+  ctx.fillText("8-Puzzle",450,390);
+
+  ctx.font = "bold 48px system-ui";
+  ctx.fillStyle = "#4a4a4a";
+  ctx.fillText("上傳你的照片",450,500);
+
+  return c.toDataURL("image/png");
+}
+
+imageURL = makeDefaultImage();
+previewImg.src = imageURL;
+shuffleBtn.disabled = false;
+resetBtn.disabled = false;
+hintBtn.disabled = false;
+shufflePuzzle();
+
+fileInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = event => {
+    cropImage.src = event.target.result;
+    cropArea.style.display = "block";
+    useCropBtn.disabled = false;
+
+    if (cropper) cropper.destroy();
+
+    cropper = new Cropper(cropImage, {
+      aspectRatio: 1,
+      viewMode: 1,
+      autoCropArea: 0.8,
+      responsive: true,
+      background: false,
+      movable: true,
+      zoomable: true,
+      scalable: false,
+      rotatable: false
+    });
+
+    setTimeout(() => {
+      cropArea.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 200);
+  };
+  reader.readAsDataURL(file);
+});
+
+useCropBtn.addEventListener("click", () => {
+  if (!cropper) return;
+
+  const canvas = cropper.getCroppedCanvas({
+    width: 900,
+    height: 900,
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: "high"
+  });
+
+  imageURL = canvas.toDataURL("image/png");
+  previewImg.src = imageURL;
+
+  cropArea.style.display = "none";
+  cropper.destroy();
+  cropper = null;
+
+  shuffleBtn.disabled = false;
+  resetBtn.disabled = false;
+  hintBtn.disabled = false;
+  shufflePuzzle();
+
+  setTimeout(() => {
+    board.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 150);
+});
+
+shuffleBtn.addEventListener("click", shufflePuzzle);
+hintBtn.addEventListener("click", showHint);
+
+resetBtn.addEventListener("click", () => {
+  tiles = solved.slice();
+  emptyIndex = 8;
+  moves = 0;
+  seconds = 0;
+  started = false;
+  hintIndex = -1;
+  stopTimer();
+  updateStats();
+  renderBoard();
+  winBox.style.display = "none";
+  hintMessage.textContent = "已顯示完成狀態。";
+});
+
+board.addEventListener("touchstart", e => {
+  const tile = e.target.closest(".tile");
+  if (!tile || tile.classList.contains("empty")) return;
+
+  const index = Number(tile.dataset.index);
+  touchStartIndex = index;
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: false });
+
+board.addEventListener("touchmove", e => {
+  e.preventDefault();
+}, { passive: false });
+
+board.addEventListener("touchend", e => {
+  if (touchStartIndex < 0) return;
+
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - touchStartX;
+  const dy = touch.clientY - touchStartY;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (Math.max(absX, absY) < 25) {
+    touchStartIndex = -1;
+    return;
+  }
+
+  const target = getSwipeTarget(touchStartIndex, dx, dy);
+
+  if (target === emptyIndex) {
+    tryMove(touchStartIndex);
+  }
+
+  touchStartIndex = -1;
+}, { passive: false });
+
+function getSwipeTarget(index, dx, dy) {
+  const r = Math.floor(index / 3);
+  const c = index % 3;
+
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 0 && c < 2) return index + 1;
+    if (dx < 0 && c > 0) return index - 1;
+  } else {
+    if (dy > 0 && r < 2) return index + 3;
+    if (dy < 0 && r > 0) return index - 3;
+  }
+
+  return -1;
+}
+
+function shufflePuzzle() {
+  tiles = solved.slice();
+  emptyIndex = 8;
+  moves = 0;
+  seconds = 0;
+  started = false;
+  hintIndex = -1;
+  stopTimer();
+  winBox.style.display = "none";
+  hintMessage.textContent = "提示會告訴你下一步該移動哪一片。手機上也可以直接滑動拼塊。";
+
+  let lastEmpty = -1;
+
+  for (let i = 0; i < 160; i++) {
+    const neighbors = getNeighbors(emptyIndex).filter(n => n !== lastEmpty);
+    const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+    lastEmpty = emptyIndex;
+    swap(emptyIndex, next);
+    emptyIndex = next;
+  }
+
+  if (isSolved()) {
+    shufflePuzzle();
+    return;
+  }
+
+  updateStats();
+  renderBoard();
+}
+
+function renderBoard() {
+  board.innerHTML = "";
+
+  tiles.forEach((tileValue, index) => {
+    const div = document.createElement("div");
+    div.className = "tile";
+    div.dataset.index = index;
+
+    if (tileValue === 8) {
+      div.classList.add("empty");
+    } else {
+      const row = Math.floor(tileValue / 3);
+      const col = tileValue % 3;
+
+      div.style.backgroundImage = `url(${imageURL})`;
+      div.style.backgroundPosition = `${col * 50}% ${row * 50}%`;
+
+      if (tileValue === index) div.classList.add("correct");
+      if (index === hintIndex) div.classList.add("hint");
+
+      div.addEventListener("click", () => tryMove(index));
+    }
+
+    board.appendChild(div);
+  });
+}
+
+function tryMove(index) {
+  if (!isNeighbor(index, emptyIndex)) return;
+
+  if (!started) {
+    started = true;
+    startTimer();
+  }
+
+  hintIndex = -1;
+  swap(index, emptyIndex);
+  emptyIndex = index;
+  moves++;
+  updateStats();
+  renderBoard();
+
+  if (isSolved()) {
+    stopTimer();
+    winBox.style.display = "block";
+    hintMessage.textContent = "完成！太棒了！";
+  }
+}
+
+function showHint() {
+  if (isSolved()) {
+    hintMessage.textContent = "目前已經完成，不需要提示。";
+    return;
+  }
+
+  const path = solveWithAStar(tiles);
+
+  if (!path || path.length < 2) {
+    hintMessage.textContent = "目前找不到提示。";
+    return;
+  }
+
+  const current = path[0];
+  const next = path[1];
+
+  const nextEmpty = next.indexOf(8);
+  hintIndex = nextEmpty;
+
+  const tileNumber = current[nextEmpty] + 1;
+
+  renderBoard();
+
+  hintMessage.textContent = `提示：請移動目前高亮的拼塊，也就是第 ${tileNumber} 片。`;
+
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => {
+    hintIndex = -1;
+    renderBoard();
+  }, 3500);
+}
+
+function solveWithAStar(startState) {
+  const goalKey = solved.join(",");
+  const startKey = startState.join(",");
+  const open = [];
+  const closed = new Set();
+
+  open.push({
+    state: startState.slice(),
+    key: startKey,
+    g: 0,
+    h: manhattan(startState),
+    parent: null
+  });
+
+  while (open.length > 0) {
+    open.sort((a, b) => (a.g + a.h) - (b.g + b.h));
+    const node = open.shift();
+
+    if (closed.has(node.key)) continue;
+    closed.add(node.key);
+
+    if (node.key === goalKey) {
+      return reconstructPath(node);
+    }
+
+    const empty = node.state.indexOf(8);
+    const neighbors = getNeighbors(empty);
+
+    for (const n of neighbors) {
+      const newState = node.state.slice();
+      [newState[empty], newState[n]] = [newState[n], newState[empty]];
+
+      const newKey = newState.join(",");
+      if (closed.has(newKey)) continue;
+
+      open.push({
+        state: newState,
+        key: newKey,
+        g: node.g + 1,
+        h: manhattan(newState),
+        parent: node
+      });
+    }
+  }
+
+  return null;
+}
+
+function manhattan(state) {
+  let dist = 0;
+
+  for (let i = 0; i < state.length; i++) {
+    const value = state[i];
+    if (value === 8) continue;
+
+    const currentRow = Math.floor(i / 3);
+    const currentCol = i % 3;
+    const targetRow = Math.floor(value / 3);
+    const targetCol = value % 3;
+
+    dist += Math.abs(currentRow - targetRow) + Math.abs(currentCol - targetCol);
+  }
+
+  return dist;
+}
+
+function reconstructPath(node) {
+  const path = [];
+
+  while (node) {
+    path.push(node.state);
+    node = node.parent;
+  }
+
+  return path.reverse();
+}
+
+function swap(a, b) {
+  [tiles[a], tiles[b]] = [tiles[b], tiles[a]];
+}
+
+function getNeighbors(index) {
+  const r = Math.floor(index / 3);
+  const c = index % 3;
+  const result = [];
+
+  if (r > 0) result.push(index - 3);
+  if (r < 2) result.push(index + 3);
+  if (c > 0) result.push(index - 1);
+  if (c < 2) result.push(index + 1);
+
+  return result;
+}
+
+function isNeighbor(a, b) {
+  return getNeighbors(a).includes(b);
+}
+
+function isSolved() {
+  return tiles.every((v, i) => v === i);
+}
+
+function updateStats() {
+  movesEl.textContent = moves;
+  timeEl.textContent = seconds;
+  movesMobileEl.textContent = moves;
+  timeMobileEl.textContent = seconds;
+}
+
+function startTimer() {
+  stopTimer();
+  timer = setInterval(() => {
+    seconds++;
+    updateStats();
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
+</script>
+</body>
+</html>
