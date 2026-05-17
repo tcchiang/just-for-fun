@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>瘋狂射繩 HTML5｜桌機手機雙模式版</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at top, #243b6b 0%, #111827 55%, #050816 100%);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #fff;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #wrap {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+  canvas {
+    background: linear-gradient(#1b2a4a, #101827 70%, #0b1020);
+    border: 4px solid rgba(255,255,255,.25);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.55);
+    max-width: 100%;
+    max-height: 100%;
+    touch-action: none;
+  }
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    font-size: 13px;
+    opacity: .78;
+    text-align: center;
+    pointer-events: none;
+    width: min(760px, 92vw);
+  }
+
+  #nameModal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.58);
+    z-index: 10;
+  }
+  #nameModal.show { display: flex; }
+  .modalBox {
+    width: min(420px, 88vw);
+    padding: 24px 22px;
+    border-radius: 18px;
+    border: 2px solid rgba(250,204,21,.75);
+    background: linear-gradient(180deg, rgba(30,41,59,.98), rgba(15,23,42,.98));
+    box-shadow: 0 22px 70px rgba(0,0,0,.6), 0 0 32px rgba(250,204,21,.25);
+    text-align: center;
+  }
+  .modalBox h2 { margin: 0 0 8px; color: #fde68a; font-size: 28px; }
+  .modalBox p { margin: 8px 0 16px; color: rgba(255,255,255,.86); line-height: 1.5; }
+  #playerName {
+    width: 100%;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.28);
+    background: rgba(255,255,255,.95);
+    color: #111827;
+    font-size: 20px;
+    text-align: center;
+    outline: none;
+  }
+  #playerName:focus { border-color: #facc15; box-shadow: 0 0 0 4px rgba(250,204,21,.25); }
+  #saveNameBtn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #facc15, #f59e0b);
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  #saveNameBtn:active { transform: translateY(1px); }
+
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="game" width="900" height="640"></canvas></div>
+<div id="nameModal" aria-hidden="true">
+  <div class="modalBox">
+    <h2>恭喜進入前 10 名！</h2>
+    <p id="modalScoreText">請輸入你的名字。</p>
+    <input id="playerName" type="text" maxlength="12" autocomplete="off" placeholder="請輸入名字" />
+    <button id="saveNameBtn" type="button">儲存高分</button>
+  </div>
+</div>
+<div class="hint" id="controlHint">桌機：← → 或 ↑ ↓ 調整角度，空白鍵射擊，R 重新開始；滑鼠也可按住瞄準、放開射擊。手機：拖曳瞄準，放開射擊。集滿五色可獲得 5000 分並進入 Bonus Lottery。</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const controlHint = document.getElementById('controlHint');
+  const isLikelyMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.matchMedia('(pointer: coarse)').matches;
+  if (controlHint) {
+    controlHint.textContent = isLikelyMobile
+      ? '手機：按住畫面拖曳瞄準，放開射擊。樂透視窗出現時點一下即可抽獎。集滿五色可獲得 5000 分與額外獎勵。'
+      : '桌機：← → 或 ↑ ↓ 調整角度，空白鍵射擊，R 重新開始；滑鼠也可按住瞄準、放開射擊。集滿五色可獲得 5000 分並進入 Bonus Lottery。';
+  }
+  const nameModal = document.getElementById('nameModal');
+  const playerNameInput = document.getElementById('playerName');
+  const saveNameBtn = document.getElementById('saveNameBtn');
+  const modalScoreText = document.getElementById('modalScoreText');
+  let nameModalOpen = false;
+  let isComposingName = false; // 中文／日文等輸入法正在組字或選字時，不可用 Enter 送出。
+  const W = canvas.width, H = canvas.height;
+
+  const keys = new Set();
+  let aimingPointerId = null;
+  let isPointerAiming = false;
+  let pointerAimX = 0;
+  let pointerAimY = 0;
+  let score = 0;
+  let missed = 0;
+  let bulletsLeft = 120;
+  let timeLeft = 90;
+  let lastTime = performance.now();
+  let gameOver = false;
+  let messageTimer = 0;
+  let messageText = '';
+  let shake = 0;
+  let nextRopeId = 1;
+  let spawnTimer = 0;
+  let flowSpeed = 54;
+  let gameState = 'playing'; // playing | lottery
+  let lotteryHighlight = 0;
+  let lotteryTimer = 0;
+  let lotteryFlash = 0;
+  let powerMultiplier = 1;
+  let powerTimer = 0;
+  let highScores = [];
+  let highScoreHandled = false;
+  const HIGH_SCORE_KEY = 'crazyRopeShooterHighScoresV1';
+  const lotteryOptions = [
+    { key: 'bullets', icon: '🔫', title: '+30 子彈', desc: '增加 30 顆子彈' },
+    { key: 'time', icon: '⏰', title: '+10 秒', desc: '增加 10 秒時間' },
+    { key: 'power', icon: '⚡', title: '威力 ×1.5', desc: '接下來 10 秒子彈更強' }
+  ];
+
+  const cannon = {
+    x: W / 2,
+    y: H - 62,
+    angle: -Math.PI / 2,
+    reload: 0
+  };
+
+  const bullets = [];
+  const particles = [];
+  const ropes = [];
+  const prizes = [];
+
+  const names = ['兔兔', '小熊', '貓咪', '企鵝', '狐狸', '恐龍', '金熊', '鯨魚', '柴犬', '熊貓'];
+  const dollTypes = ['bear', 'bunny', 'cat', 'chick', 'star', 'crown'];
+  const dollLabels = {
+    bear: '小熊娃娃',
+    bunny: '兔兔娃娃',
+    cat: '貓咪娃娃',
+    chick: '小雞娃娃',
+    star: '星星娃娃',
+    crown: '皇冠娃娃'
+  };
+  const taskColors = [
+    {name:'紅', hex:'#ef4444'},
+    {name:'黃', hex:'#facc15'},
+    {name:'綠', hex:'#22c55e'},
+    {name:'藍', hex:'#3b82f6'},
+    {name:'紫', hex:'#a855f7'}
+  ];
+  const colors = taskColors.map(c => c.hex);
+  const collectionLit = new Array(taskColors.length).fill(false);
+
+  // ===== 高分榜：使用 localStorage 保存前 10 名 =====
+  function loadHighScores() {
+    try {
+      const raw = localStorage.getItem(HIGH_SCORE_KEY);
+      const list = raw ? JSON.parse(raw) : [];
+      return Array.isArray(list) ? list
+        .filter(x => x && typeof x.name === 'string' && Number.isFinite(Number(x.score)))
+        .map(x => ({ name: x.name.slice(0, 12), score: Number(x.score), date: x.date || '' }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveHighScores() {
+    try { localStorage.setItem(HIGH_SCORE_KEY, JSON.stringify(highScores.slice(0, 10))); }
+    catch (_) {}
+  }
+
+  function isTopTen(value) {
+    return value > 0 && (highScores.length < 10 || value > highScores[highScores.length - 1].score);
+  }
+
+  function hasPendingFallingPrize() {
+    return prizes.some(p => p && p.falling && !p.collected);
+  }
+
+  function finishGame() {
+    if (gameOver || gameState === 'lottery') return;
+    gameOver = true;
+    timeLeft = Math.max(0, timeLeft);
+    if (!highScoreHandled) {
+      highScoreHandled = true;
+      // 讓最後一個畫面先畫出來，再打開真正的 HTML 輸入視窗。
+      setTimeout(() => {
+        if (isTopTen(score)) openNameModal();
+      }, 80);
+    }
+  }
+
+  function openNameModal() {
+    nameModalOpen = true;
+    modalScoreText.textContent = `你的分數是 ${score}，請輸入名字登上高分榜。`;
+    playerNameInput.value = '';
+    nameModal.classList.add('show');
+    nameModal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => playerNameInput.focus(), 30);
+  }
+
+  function closeNameModalAndSave() {
+    if (!nameModalOpen) return;
+    let name = playerNameInput.value.trim() || '匿名玩家';
+    highScores.push({
+      name: name.slice(0, 12),
+      score,
+      date: new Date().toLocaleDateString('zh-TW')
+    });
+    highScores.sort((a, b) => b.score - a.score);
+    highScores = highScores.slice(0, 10);
+    saveHighScores();
+    nameModalOpen = false;
+    nameModal.classList.remove('show');
+    nameModal.setAttribute('aria-hidden', 'true');
+    canvas.focus?.();
+  }
+
+
+
+  // ===== Web Audio API：單檔離線可用的街機風音效 =====
+  let audioCtx = null;
+  let audioUnlocked = false;
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    audioUnlocked = true;
+  }
+
+  function tone(freq, duration, type='sine', gain=0.08, start=0, endFreq=null) {
+    if (!audioUnlocked || !audioCtx) return;
+    const now = audioCtx.currentTime + start;
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    if (endFreq) osc.frequency.exponentialRampToValueAtTime(Math.max(1, endFreq), now + duration);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(gain, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + duration + 0.02);
+  }
+
+  function noiseBurst(duration=0.055, gain=0.045, start=0) {
+    if (!audioUnlocked || !audioCtx) return;
+    const now = audioCtx.currentTime + start;
+    const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+    const src = audioCtx.createBufferSource();
+    const g = audioCtx.createGain();
+    src.buffer = buffer;
+    g.gain.setValueAtTime(gain, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    src.connect(g).connect(audioCtx.destination);
+    src.start(now);
+    src.stop(now + duration + 0.02);
+  }
+
+  function playShoot() {
+    ensureAudio();
+    tone(880, 0.085, 'square', 0.055, 0, 260);
+    tone(130, 0.055, 'triangle', 0.05, 0, 80);
+    noiseBurst(0.035, 0.025, 0.004);
+  }
+
+  function playHit(nearBreak=false) {
+    tone(nearBreak ? 520 : 390, 0.045, 'square', nearBreak ? 0.07 : 0.045, 0, nearBreak ? 220 : 260);
+    noiseBurst(nearBreak ? 0.085 : 0.04, nearBreak ? 0.05 : 0.025);
+    if (nearBreak) tone(740, 0.035, 'triangle', 0.035, 0.045, 430);
+  }
+
+  function playCut() {
+    noiseBurst(0.13, 0.085);
+    tone(220, 0.08, 'sawtooth', 0.055, 0, 90);
+    tone(980, 0.08, 'square', 0.05, 0.025, 460);
+  }
+
+  function playCollect(value=0) {
+    const high = value >= 650;
+    tone(high ? 880 : 660, 0.075, 'triangle', 0.07, 0);
+    tone(high ? 1320 : 990, 0.105, 'sine', 0.06, 0.055);
+    if (high) tone(1760, 0.12, 'sine', 0.05, 0.13);
+  }
+
+  function playColorLamp(colorIndex) {
+    const scale = [523.25, 587.33, 659.25, 783.99, 1046.5];
+    tone(scale[colorIndex % scale.length], 0.09, 'sine', 0.045, 0);
+  }
+
+  function playBonus() {
+    const seq = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    seq.forEach((f, i) => tone(f, 0.12, 'triangle', 0.07, i * 0.085));
+    tone(196, 0.34, 'sawtooth', 0.045, 0, 98);
+  }
+
+  function playLotteryTick() {
+    tone(620 + lotteryHighlight * 120, 0.035, 'square', 0.025, 0, 420);
+  }
+
+  function playLotteryWin() {
+    const seq = [784, 988, 1175, 1568];
+    seq.forEach((f, i) => tone(f, 0.12, 'triangle', 0.07, i * 0.07));
+    noiseBurst(0.09, 0.045, 0.03);
+  }
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function makeRope(anchorX = -80) {
+    const id = nextRopeId++;
+    const difficulty = Math.random();
+    const len = rand(118, 190);
+    const value = Math.round((140 + difficulty * 760 + rand(-30, 70)) / 10) * 10;
+    // 高分娃娃比較小、移動比較快，也有更長的繩子血量。
+    const hp = Math.round(20 + difficulty * 62 + value * 0.035 + rand(-5, 9));
+    const speedFactor = 0.84 + difficulty * 1.05;
+    const prizeRadius = clamp(32 - difficulty * 16 + rand(-1.5, 1.5), 14, 32);
+    const colorIndex = Math.floor(rand(0, taskColors.length));
+    const type = difficulty > .82 ? (Math.random() < .55 ? 'crown' : 'star') : dollTypes[Math.floor(rand(0, 4))];
+    // 風險／報酬規則：低分大娃娃比較慢、線細、HP 低；高分小娃娃比較快、線粗、HP 高。
+    // 這樣高分目標會同時具備「小、快、粗繩、高血量」的挑戰性。
+    const ropeThickness = clamp(1.8 + difficulty * 5.0 + rand(-0.25, 0.25), 1.8, 6.8);
+    const rope = {
+      id,
+      anchorX,
+      anchorY: 64,
+      len,
+      swingAmp: rand(5, 22),
+      swingSpeed: rand(1.0, 2.4),
+      phase: rand(0, Math.PI * 2),
+      hp,
+      maxHp: hp,
+      thickness: ropeThickness,
+      cut: false,
+      flash: 0,
+      prizeIndex: prizes.length,
+      speed: flowSpeed * speedFactor
+    };
+    const prize = {
+      ropeId: id,
+      name: names[Math.floor(rand(0, names.length))],
+      x: anchorX,
+      y: rope.anchorY + len + 28,
+      vx: 0,
+      vy: 0,
+      r: prizeRadius,
+      value,
+      difficulty,
+      falling: false,
+      collected: false,
+      colorIndex,
+      type,
+      label: dollLabels[type]
+    };
+    ropes.push(rope);
+    prizes.push(prize);
+  }
+
+  function init() {
+    if (nameModal) { nameModal.classList.remove('show'); nameModal.setAttribute('aria-hidden', 'true'); }
+    nameModalOpen = false;
+    score = 0;
+    missed = 0;
+    bulletsLeft = 120;
+    timeLeft = 90;
+    gameOver = false;
+    highScoreHandled = false;
+    highScores = loadHighScores();
+    messageTimer = 0;
+    shake = 0;
+    nextRopeId = 1;
+    spawnTimer = 0;
+    bullets.length = 0;
+    particles.length = 0;
+    ropes.length = 0;
+    prizes.length = 0;
+    cannon.x = W / 2;
+    cannon.y = H - 62;
+    cannon.angle = -Math.PI / 2;
+    cannon.reload = 0;
+    gameState = 'playing';
+    lotteryHighlight = 0;
+    lotteryTimer = 0;
+    lotteryFlash = 0;
+    powerMultiplier = 1;
+    powerTimer = 0;
+    aimingPointerId = null;
+    isPointerAiming = false;
+
+    for (let i = 0; i < 8; i++) makeRope(-100 - i * 135);
+    collectionLit.fill(false);
+    messageText = '吊繩從左邊進場，把握瞬間射擊！首次操作後會啟用音效。';
+    messageTimer = 2.2;
+  }
+
+  function ropeEnd(rope, t) {
+    const sx = Math.sin(t * rope.swingSpeed + rope.phase) * rope.swingAmp;
+    const ex = rope.anchorX + sx;
+    return { x1: rope.anchorX, y1: rope.anchorY, x2: ex, y2: rope.anchorY + rope.len };
+  }
+
+  function distPointToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const l2 = dx*dx + dy*dy;
+    if (l2 === 0) return Math.hypot(px-x1, py-y1);
+    let u = ((px-x1)*dx + (py-y1)*dy) / l2;
+    u = clamp(u, 0, 1);
+    const x = x1 + u * dx, y = y1 + u * dy;
+    return Math.hypot(px-x, py-y);
+  }
+
+  function vibrate(pattern) {
+    if (isLikelyMobile && navigator.vibrate) {
+      try { navigator.vibrate(pattern); } catch (_) {}
+    }
+  }
+
+  function fire() {
+    if (gameOver || gameState !== 'playing' || cannon.reload > 0 || bulletsLeft <= 0) return;
+    playShoot();
+    vibrate(8);
+    bulletsLeft--;
+    cannon.reload = 0.105;
+    const speed = 760;
+    const spread = rand(-0.014, 0.014);
+    const a = cannon.angle + spread;
+    bullets.push({
+      x: cannon.x + Math.cos(a) * 39,
+      y: cannon.y + Math.sin(a) * 39,
+      vx: Math.cos(a) * speed,
+      vy: Math.sin(a) * speed,
+      r: powerMultiplier > 1 ? 6.5 : 5,
+      power: powerMultiplier,
+      life: 1.45
+    });
+  }
+
+  function hitRope(rope, bx, by) {
+    const hpRatioBefore = rope.hp / rope.maxHp;
+    const dmg = Math.round(rand(8, 14) * powerMultiplier);
+    rope.hp -= dmg;
+    rope.flash = 0.12;
+    shake = 3.5;
+    playHit((rope.hp / rope.maxHp) < .35);
+    vibrate((rope.hp / rope.maxHp) < .35 ? 22 : 12);
+    for (let i = 0; i < 14; i++) {
+      particles.push({x: bx, y: by, vx: rand(-90,90), vy: rand(-100,60), life: rand(.25,.55), size: rand(2,4)});
+    }
+    if (rope.hp <= 0 && !rope.cut) {
+      rope.cut = true;
+      playCut();
+      const prize = prizes[rope.prizeIndex];
+      prize.falling = true;
+      prize.vx = rope.speed * .28 + rand(-35, 35);
+      prize.vy = rand(-25, 20);
+      messageText = `成功射斷！${prize.label} 掉下來了！`;
+      messageTimer = 1.25;
+      for (let i = 0; i < 34; i++) particles.push({x: bx, y: by, vx: rand(-160,160), vy: rand(-180,80), life: rand(.35,.8), size: rand(2,5)});
+    } else if (hpRatioBefore < .35) {
+      messageText = '快斷了，趁它還沒移走！';
+      messageTimer = .65;
+    }
+  }
+
+  function removeRopeAt(i) {
+    const rope = ropes[i];
+    const prize = prizes[rope.prizeIndex];
+    if (!rope.cut && prize && !prize.collected) missed++;
+    ropes.splice(i, 1);
+  }
+
+  function startLottery() {
+    vibrate([45, 25, 45]);
+    gameState = 'lottery';
+    lotteryHighlight = Math.floor(rand(0, lotteryOptions.length));
+    lotteryTimer = 0;
+    lotteryFlash = 0;
+    messageText = '五色收集完成！+5000，按空白鍵抽額外獎勵！';
+    messageTimer = 999;
+  }
+
+  function chooseLotteryReward() {
+    if (gameState !== 'lottery') return;
+    const reward = lotteryOptions[lotteryHighlight];
+    if (reward.key === 'bullets') {
+      bulletsLeft += 30;
+      messageText = '抽中額外獎勵：+30 顆子彈！';
+    } else if (reward.key === 'time') {
+      timeLeft += 10;
+      messageText = '抽中額外獎勵：時間 +10 秒！';
+    } else {
+      powerMultiplier = 1.5;
+      powerTimer = 10;
+      messageText = '抽中額外獎勵：10 秒內子彈威力 ×1.5！';
+    }
+    playLotteryWin();
+    gameState = 'playing';
+    messageTimer = 2.0;
+  }
+
+  function update(dt, now) {
+    if (gameState === 'lottery') {
+      lotteryTimer += dt;
+      lotteryFlash = Math.max(0, lotteryFlash - dt);
+      if (lotteryTimer >= 0.16) {
+        lotteryTimer = 0;
+        lotteryHighlight = (lotteryHighlight + 1) % lotteryOptions.length;
+        lotteryFlash = 0.12;
+        playLotteryTick();
+      }
+      return;
+    }
+
+    if (!gameOver) timeLeft -= dt;
+    if (powerTimer > 0) {
+      powerTimer = Math.max(0, powerTimer - dt);
+      if (powerTimer <= 0) powerMultiplier = 1;
+    }
+    if (!gameOver) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        makeRope(rand(-180, -80));
+        spawnTimer = rand(1.65, 2.35);
+      }
+    }
+
+    if (keys.has('ArrowLeft') || keys.has('ArrowUp')) cannon.angle -= 1.85 * dt;
+    if (keys.has('ArrowRight') || keys.has('ArrowDown')) cannon.angle += 1.85 * dt;
+    cannon.angle = clamp(cannon.angle, -Math.PI + .20, -.20);
+    cannon.reload = Math.max(0, cannon.reload - dt);
+    messageTimer = Math.max(0, messageTimer - dt);
+    shake = Math.max(0, shake - 35 * dt);
+
+    for (let i = ropes.length - 1; i >= 0; i--) {
+      const rope = ropes[i];
+      if (!rope.cut) rope.anchorX += rope.speed * dt;
+      if (rope.flash > 0) rope.flash -= dt;
+      const seg = ropeEnd(rope, now);
+      const p = prizes[rope.prizeIndex];
+      if (p && !p.falling && !p.collected) {
+        p.x = seg.x2;
+        p.y = seg.y2 + 28;
+        p.vx = rope.speed;
+      }
+      if (!rope.cut && rope.anchorX > W + 120) removeRopeAt(i);
+    }
+
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.life -= dt;
+      let remove = b.life <= 0 || b.x < -20 || b.x > W+20 || b.y < -20 || b.y > H+20;
+      if (!remove) {
+        for (const rope of ropes) {
+          if (rope.cut) continue;
+          const seg = ropeEnd(rope, now);
+          const d = distPointToSegment(b.x, b.y, seg.x1, seg.y1, seg.x2, seg.y2);
+          if (d < b.r + rope.thickness + 2) {
+            hitRope(rope, b.x, b.y);
+            remove = true;
+            break;
+          }
+        }
+      }
+      if (remove) bullets.splice(i, 1);
+    }
+
+    for (const p of prizes) {
+      if (p.falling && !p.collected) {
+        p.vy += 730 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        if (p.x < p.r || p.x > W-p.r) p.vx *= -0.55;
+        p.x = clamp(p.x, p.r, W-p.r);
+        if (p.y > H - 42 - p.r) {
+          p.y = H - 42 - p.r;
+          p.vy *= -0.25;
+          p.vx *= 0.80;
+          if (Math.abs(p.vy) < 85) {
+            p.collected = true;
+            p.falling = false;
+            score += p.value;
+            playCollect(p.value);
+            collectionLit[p.colorIndex] = true;
+            playColorLamp(p.colorIndex);
+            let bonus = 0;
+            if (collectionLit.every(Boolean)) {
+              bonus = 5000;
+              score += bonus;
+              playBonus();
+              collectionLit.fill(false);
+              startLottery();
+            }
+            if (!bonus) {
+              messageText = `收集成功：${p.label} +${p.value}，${taskColors[p.colorIndex].name}燈亮起`;
+              messageTimer = 1.1;
+            }
+          }
+        }
+      }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= dt;
+      p.vy += 240 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // 結束判定放在所有碰撞、掉落、收集與五色任務之後。
+    // 這樣最後一發子彈若觸發五色任務，會先進入樂透，而不是直接 Game Over。
+    if (!gameOver && gameState === 'playing') {
+      const noShotsLeft = bulletsLeft <= 0 && bullets.length === 0 && !hasPendingFallingPrize();
+      if (timeLeft <= 0 || noShotsLeft) finishGame();
+    }
+  }
+
+  function roundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawDollFace(r, accent) {
+    ctx.fillStyle = '#111827';
+    ctx.beginPath(); ctx.arc(-r*.24, -r*.12, Math.max(2, r*.075), 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*.24, -r*.12, Math.max(2, r*.075), 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = Math.max(1.5, r*.07);
+    ctx.beginPath(); ctx.arc(0, r*.04, r*.24, .15, Math.PI-.15); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.beginPath(); ctx.arc(-r*.38, -r*.30, r*.16, 0, Math.PI*2); ctx.fill();
+  }
+
+  function drawBear(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx*r*.58, -r*.54, r*.28, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(0, -r*.18, r*.72, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, r*.50, r*.58, r*.50, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    drawDollFace(r, base);
+  }
+
+  function drawBunny(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    for (const sx of [-1, 1]) { ctx.beginPath(); ctx.ellipse(sx*r*.34, -r*.95, r*.18, r*.50, sx*.25, 0, Math.PI*2); ctx.fill(); ctx.stroke(); }
+    ctx.beginPath(); ctx.arc(0, -r*.20, r*.66, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    roundedRect(-r*.48, r*.28, r*.96, r*.68, r*.26); ctx.fill(); ctx.stroke();
+    drawDollFace(r, base);
+  }
+
+  function drawCat(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    ctx.beginPath(); ctx.moveTo(-r*.56, -r*.48); ctx.lineTo(-r*.30, -r*.95); ctx.lineTo(-r*.10, -r*.48); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r*.56, -r*.48); ctx.lineTo(r*.30, -r*.95); ctx.lineTo(r*.10, -r*.48); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -r*.18, r*.68, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    roundedRect(-r*.50, r*.28, r, r*.66, r*.22); ctx.fill(); ctx.stroke();
+    drawDollFace(r, base);
+    ctx.strokeStyle = '#111827'; ctx.lineWidth = Math.max(1, r*.045);
+    for (const sy of [-.05, .09]) {
+      ctx.beginPath(); ctx.moveTo(-r*.10, r*sy); ctx.lineTo(-r*.48, r*(sy-.10)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r*.10, r*sy); ctx.lineTo(r*.48, r*(sy-.10)); ctx.stroke();
+    }
+  }
+
+  function drawChick(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.92)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    ctx.beginPath(); ctx.ellipse(0, r*.18, r*.72, r*.88, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    ctx.beginPath(); ctx.ellipse(-r*.55, r*.20, r*.23, r*.43, -.45, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(r*.55, r*.20, r*.23, r*.43, .45, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#111827';
+    ctx.beginPath(); ctx.arc(-r*.24, -r*.18, Math.max(2, r*.08), 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( r*.24, -r*.18, Math.max(2, r*.08), 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fb923c';
+    ctx.beginPath(); ctx.moveTo(0, -r*.02); ctx.lineTo(-r*.16, r*.14); ctx.lineTo(r*.16, r*.14); ctx.closePath(); ctx.fill();
+  }
+
+  function drawStar(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI/2 + i * Math.PI / 5;
+      const rr = i % 2 === 0 ? r*.92 : r*.42;
+      const x = Math.cos(a) * rr, y = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    drawDollFace(r*.82, base);
+  }
+
+  function drawCrown(r, base) {
+    ctx.fillStyle = base;
+    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+    ctx.lineWidth = Math.max(2, r*.10);
+    ctx.beginPath();
+    ctx.moveTo(-r*.78, r*.26); ctx.lineTo(-r*.64, -r*.55); ctx.lineTo(-r*.25, -r*.10);
+    ctx.lineTo(0, -r*.72); ctx.lineTo(r*.25, -r*.10); ctx.lineTo(r*.64, -r*.55); ctx.lineTo(r*.78, r*.26);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    roundedRect(-r*.68, r*.18, r*1.36, r*.50, r*.16); ctx.fill(); ctx.stroke();
+    drawDollFace(r*.70, base);
+  }
+
+  function drawPrize(p) {
+    if (!p || p.collected) return;
+    const base = colors[p.colorIndex % colors.length];
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    if (p.falling) ctx.rotate(Math.sin((p.x + p.y) * .018) * .10);
+    ctx.shadowColor = base;
+    ctx.shadowBlur = p.value >= 700 ? 18 : 8;
+    const r = p.r;
+    if (p.type === 'bunny') drawBunny(r, base);
+    else if (p.type === 'cat') drawCat(r, base);
+    else if (p.type === 'chick') drawChick(r, base);
+    else if (p.type === 'star') drawStar(r, base);
+    else if (p.type === 'crown') drawCrown(r, base);
+    else drawBear(r, base);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,.97)';
+    ctx.font = `bold ${Math.max(11, Math.round(r*.42))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0,0,0,.50)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(p.value, 0, r + 22);
+    ctx.fillText(p.value, 0, r + 22);
+    ctx.restore();
+  }
+
+  function drawCollectionTask() {
+    const startX = W/2 - 142;
+    const y = 31;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.fillText('五色任務', W/2, 14);
+    for (let i = 0; i < taskColors.length; i++) {
+      const x = startX + i * 71;
+      ctx.globalAlpha = collectionLit[i] ? 1 : .28;
+      ctx.fillStyle = taskColors[i].hex;
+      ctx.shadowColor = taskColors[i].hex;
+      ctx.shadowBlur = collectionLit[i] ? 16 : 0;
+      ctx.beginPath();
+      ctx.arc(x, y, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,.82)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = collectionLit[i] ? '#fff' : 'rgba(255,255,255,.42)';
+      ctx.fillText(taskColors[i].name, x, y + 27);
+    }
+    ctx.restore();
+  }
+
+  function drawLotteryWindow(now) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,.58)';
+    ctx.fillRect(0, 0, W, H);
+
+    const panelW = 620, panelH = 310;
+    const x = W/2 - panelW/2, y = H/2 - panelH/2;
+    ctx.shadowColor = '#facc15';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = 'rgba(15,23,42,.96)';
+    roundedRect(x, y, panelW, panelH, 28);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 5;
+    roundedRect(x, y, panelW, panelH, 28);
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fde68a';
+    ctx.font = 'bold 42px sans-serif';
+    ctx.fillText('BONUS LOTTERY', W/2, y + 58);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px sans-serif';
+    ctx.fillText('五色收集完成：已獲得 +5000！按空白鍵停下抽獎。', W/2, y + 92);
+
+    const cardW = 165, cardH = 145;
+    const gap = 26;
+    const startX = W/2 - (cardW*3 + gap*2)/2;
+    for (let i = 0; i < lotteryOptions.length; i++) {
+      const opt = lotteryOptions[i];
+      const cx = startX + i * (cardW + gap);
+      const cy = y + 125;
+      const active = i === lotteryHighlight;
+      ctx.globalAlpha = active ? 1 : .38;
+      ctx.shadowColor = active ? '#fef08a' : 'transparent';
+      ctx.shadowBlur = active ? 22 + Math.sin(now*12)*7 : 0;
+      ctx.fillStyle = active ? 'rgba(250,204,21,.23)' : 'rgba(255,255,255,.08)';
+      roundedRect(cx, cy, cardW, cardH, 22);
+      ctx.fill();
+      ctx.strokeStyle = active ? '#fef08a' : 'rgba(255,255,255,.25)';
+      ctx.lineWidth = active ? 4 : 2;
+      roundedRect(cx, cy, cardW, cardH, 22);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.font = '52px serif';
+      ctx.fillText(opt.icon, cx + cardW/2, cy + 58);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(opt.title, cx + cardW/2, cy + 94);
+      ctx.fillStyle = 'rgba(255,255,255,.86)';
+      ctx.font = '15px sans-serif';
+      ctx.fillText(opt.desc, cx + cardW/2, cy + 121);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fde68a';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText('SPACE：抽取目前亮起的獎勵', W/2, y + panelH - 26);
+    ctx.restore();
+  }
+
+
+
+  function drawHighScoreBoard(cx, top, width) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(15,23,42,.82)';
+    ctx.strokeStyle = 'rgba(250,204,21,.75)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(cx - width/2, top, width, 252, 18); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fde68a';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText('🏆 高分榜 TOP 10', cx, top + 35);
+    ctx.font = '16px sans-serif';
+    if (!highScores.length) {
+      ctx.fillStyle = 'rgba(255,255,255,.72)';
+      ctx.fillText('目前尚無紀錄', cx, top + 88);
+    } else {
+      ctx.textAlign = 'left';
+      for (let i = 0; i < highScores.length; i++) {
+        const row = highScores[i];
+        const y = top + 70 + i * 17;
+        ctx.fillStyle = i === 0 ? '#fef08a' : (i < 3 ? '#e0f2fe' : 'rgba(255,255,255,.88)');
+        ctx.fillText(`${String(i+1).padStart(2, ' ')}. ${row.name}`, cx - width/2 + 28, y);
+        ctx.textAlign = 'right';
+        ctx.fillText(String(row.score), cx + width/2 - 28, y);
+        ctx.textAlign = 'left';
+      }
+    }
+    ctx.restore();
+  }
+
+  function draw(now) {
+    ctx.save();
+    ctx.clearRect(0,0,W,H);
+    if (shake > 0) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+
+    ctx.fillStyle = 'rgba(255,255,255,.05)';
+    for (let x = 40; x < W; x += 70) {
+      ctx.beginPath(); ctx.arc(x, 38 + Math.sin(now + x)*8, 2.5, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.fillRect(0, H-42, W, 42);
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    ctx.fillRect(0, 0, W, 50);
+
+    // 移動軌道與中央射擊窗口
+    ctx.strokeStyle = 'rgba(219,234,254,.95)';
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(0, 64); ctx.lineTo(W, 64); ctx.stroke();
+    ctx.fillStyle = 'rgba(250,204,21,.12)';
+    ctx.fillRect(W/2 - 95, 54, 190, H - 120);
+    ctx.strokeStyle = 'rgba(250,204,21,.45)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath(); ctx.moveTo(W/2 - 95, 54); ctx.lineTo(W/2 - 95, H - 72); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W/2 + 95, 54); ctx.lineTo(W/2 + 95, H - 72); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // HUD
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 21px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`分數 ${score}`, 22, 32);
+    ctx.textAlign = 'right';
+    const powerText = powerTimer > 0 ? `　威力×1.5 ${powerTimer.toFixed(1)}s` : '';
+    ctx.fillText(`子彈 ${bulletsLeft}　時間 ${Math.ceil(timeLeft)}　錯過 ${missed}${powerText}`, W-22, 32);
+    drawCollectionTask();
+
+    for (const rope of ropes) {
+      if (rope.cut) continue;
+      const seg = ropeEnd(rope, now);
+      const ratio = rope.hp / rope.maxHp;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = rope.thickness;
+      ctx.strokeStyle = rope.flash > 0 ? '#ffffff' : (ratio < .28 ? '#fb7185' : '#e5e7eb');
+      ctx.beginPath(); ctx.moveTo(seg.x1, seg.y1); ctx.lineTo(seg.x2, seg.y2); ctx.stroke();
+      ctx.fillStyle = 'rgba(0,0,0,.35)';
+      ctx.fillRect(seg.x2 - 23, seg.y2 - 10, 46, 6);
+      ctx.fillStyle = ratio < .28 ? '#fb7185' : '#22c55e';
+      ctx.fillRect(seg.x2 - 23, seg.y2 - 10, 46 * ratio, 6);
+    }
+
+    for (const p of prizes) drawPrize(p);
+
+    for (const b of bullets) {
+      ctx.fillStyle = b.power > 1 ? '#fef08a' : '#fde68a';
+      ctx.shadowColor = b.power > 1 ? '#facc15' : '#fde68a';
+      ctx.shadowBlur = b.power > 1 ? 22 : 12;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+      if (b.power > 1) {
+        ctx.strokeStyle = 'rgba(254,240,138,.45)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(b.x - b.vx * 0.025, b.y - b.vy * 0.025);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.fillStyle = '#fde68a';
+    for (const p of particles) {
+      ctx.globalAlpha = clamp(p.life * 2, 0, 1);
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 固定中央砲台
+    ctx.save();
+    ctx.translate(cannon.x, cannon.y);
+    ctx.rotate(cannon.angle);
+    ctx.fillStyle = '#9ca3af';
+    ctx.strokeStyle = '#f8fafc';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(0, -11, 62, 22, 10);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath(); ctx.arc(62, 0, 8, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#475569';
+    ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 27, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e5e7eb';
+    ctx.beginPath(); ctx.arc(cannon.x, cannon.y, 14, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,.22)';
+    ctx.setLineDash([8, 10]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cannon.x, cannon.y);
+    ctx.lineTo(cannon.x + Math.cos(cannon.angle) * 660, cannon.y + Math.sin(cannon.angle) * 660);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (isPointerAiming && !gameOver && gameState === 'playing') {
+      ctx.strokeStyle = 'rgba(250,204,21,.65)';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([4, 8]);
+      ctx.beginPath();
+      ctx.moveTo(cannon.x, cannon.y);
+      ctx.lineTo(pointerAimX, pointerAimY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(250,204,21,.9)';
+      ctx.beginPath();
+      ctx.arc(pointerAimX, pointerAimY, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (messageTimer > 0) {
+      ctx.fillStyle = 'rgba(0,0,0,.45)';
+      ctx.beginPath(); ctx.roundRect(W/2-285, 76, 570, 44, 16); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(messageText, W/2, 104);
+    }
+
+    if (gameState === 'lottery') {
+      drawLotteryWindow(now);
+    }
+
+    if (gameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,.72)';
+      ctx.fillRect(0,0,W,H);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 46px sans-serif';
+      ctx.fillText('遊戲結束', W/2, 118);
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(`總分：${score}`, W/2, 160);
+      ctx.font = '18px sans-serif';
+      ctx.fillStyle = isTopTen(score) ? '#fde68a' : 'rgba(255,255,255,.85)';
+      ctx.fillText(isTopTen(score) ? '恭喜！你進入前 10 名，可輸入名字保存紀錄。' : '按 R 或點擊畫面重新開始', W/2, 190);
+      drawHighScoreBoard(W/2, 220, 460);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.font = '18px sans-serif';
+      ctx.fillText('按 R 或點擊畫面重新開始', W/2, 510);
+    }
+    ctx.restore();
+  }
+
+  function loop(t) {
+    const dt = Math.min(0.033, (t - lastTime) / 1000);
+    lastTime = t;
+    update(dt, t / 1000);
+    draw(t / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  window.addEventListener('keydown', e => {
+    if (nameModalOpen) {
+      // 中文注音／拼音等 IME 組字或選字時，Enter 是給輸入法使用，不能送出高分榜。
+      const composing = isComposingName || e.isComposing || e.keyCode === 229;
+      if ((e.key === 'Enter' || e.code === 'Enter') && !composing) {
+        e.preventDefault();
+        closeNameModalAndSave();
+      }
+      return;
+    }
+    keys.add(e.code);
+    if (e.code === 'Space') {
+      e.preventDefault();
+      ensureAudio();
+      if (gameState === 'lottery') chooseLotteryReward();
+      else fire();
+    }
+    if (e.code === 'KeyR') init();
+  });
+  window.addEventListener('keyup', e => { if (!nameModalOpen) keys.delete(e.code); });
+
+  playerNameInput.addEventListener('compositionstart', () => { isComposingName = true; });
+  playerNameInput.addEventListener('compositionend', () => {
+    // 有些瀏覽器會先觸發 keydown Enter，再觸發 compositionend；延後一拍解除保護較安全。
+    setTimeout(() => { isComposingName = false; }, 0);
+  });
+  playerNameInput.addEventListener('keydown', e => {
+    const composing = isComposingName || e.isComposing || e.keyCode === 229;
+    if ((e.key === 'Enter' || e.code === 'Enter') && composing) {
+      e.stopPropagation();
+    }
+  });
+  saveNameBtn.addEventListener('click', closeNameModalAndSave);
+
+  function eventToCanvasPoint(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width),
+      y: (e.clientY - rect.top) * (canvas.height / rect.height)
+    };
+  }
+
+  function aimAtPoint(x, y) {
+    const dx = x - cannon.x;
+    const dy = y - cannon.y;
+    cannon.angle = clamp(Math.atan2(dy, dx), -Math.PI + .20, -.20);
+    pointerAimX = x;
+    pointerAimY = y;
+  }
+
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+  canvas.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    ensureAudio();
+    if (nameModalOpen) return;
+    if (gameOver) { init(); return; }
+    if (gameState === 'lottery') { chooseLotteryReward(); return; }
+    const p = eventToCanvasPoint(e);
+    aimAtPoint(p.x, p.y);
+    aimingPointerId = e.pointerId;
+    isPointerAiming = true;
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  }, { passive: false });
+
+  canvas.addEventListener('pointermove', e => {
+    if (nameModalOpen || aimingPointerId !== e.pointerId) return;
+    e.preventDefault();
+    const p = eventToCanvasPoint(e);
+    aimAtPoint(p.x, p.y);
+  }, { passive: false });
+
+  function finishPointerShot(e) {
+    if (nameModalOpen || aimingPointerId !== e.pointerId) return;
+    e.preventDefault();
+    const p = eventToCanvasPoint(e);
+    aimAtPoint(p.x, p.y);
+    isPointerAiming = false;
+    aimingPointerId = null;
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    fire();
+  }
+
+  canvas.addEventListener('pointerup', finishPointerShot, { passive: false });
+  canvas.addEventListener('pointercancel', e => {
+    if (aimingPointerId === e.pointerId) {
+      isPointerAiming = false;
+      aimingPointerId = null;
+    }
+  });
+
+  init();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
