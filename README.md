@@ -9,5 +9,6 @@ just for fun
 | [CandyCrush](https://tcchiang.github.io/just-for-fun/CandyCrush.html) | CandyCrush 三消遊戲|
 | [Connect4](https://tcchiang.github.io/just-for-fun/Connect4.html) | Connect4 直立四子棋|
 | [MineSweeper](https://tcchiang.github.io/just-for-fun/MineSweeper.html) | MineSweeper 踩地雷|
+| [RopeShooter](https://tcchiang.github.io/just-for-fun/RopeShooter.html) | 瘋狂射繩 |
 | [Tetris](https://tcchiang.github.io/just-for-fun/Tetris.html) | Tetris 俄羅斯方塊|
 
