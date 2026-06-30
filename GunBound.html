@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GunBound-like Prototype v1</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #1b2430;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      user-select: none;
+    }
+    h1 { font-size: 22px; margin: 14px 0 6px; }
+    .wrap { width: min(100vw, 1100px); padding: 8px; }
+    canvas {
+      width: 100%;
+      height: auto;
+      background: linear-gradient(#8fd8ff, #c9f0ff 55%, #f7e2aa 55%);
+      border: 3px solid #334155;
+      border-radius: 12px;
+      display: block;
+      box-shadow: 0 8px 24px rgba(0,0,0,.35);
+      touch-action: none;
+    }
+    .panel {
+      margin-top: 10px;
+      background: #263244;
+      border: 1px solid #3d4b63;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr 1fr auto auto auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .box {
+      background: #1f2937;
+      border-radius: 10px;
+      padding: 8px 10px;
+      min-height: 44px;
+    }
+    label { display: block; font-size: 13px; opacity: .9; margin-bottom: 3px; }
+    input[type=range] { width: 100%; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      background: #f59e0b;
+      color: #111827;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .hint { opacity: .85; font-size: 13px; line-height: 1.55; margin-top: 8px; }
+    .kbd { background:#111827; border:1px solid #475569; border-radius:5px; padding:1px 5px; }
+    .mobile-controls {
+      display: none;
+      margin-top: 10px;
+      background: #263244;
+      border: 1px solid #3d4b63;
+      border-radius: 12px;
+      padding: 10px;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr 1.1fr;
+      align-items: stretch;
+    }
+    .control-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .control-title {
+      grid-column: 1 / -1;
+      text-align: center;
+      font-size: 13px;
+      opacity: .9;
+      margin-bottom: -2px;
+    }
+    .touch-btn {
+      min-height: 54px;
+      padding: 10px 8px;
+      font-size: 20px;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #mobileFireBtn {
+      height: 100%;
+      min-height: 116px;
+      font-size: 22px;
+      background: #ef4444;
+      color: white;
+    }
+    @media (max-width: 760px) {
+      h1 { font-size: 18px; margin-top: 8px; }
+      .wrap { padding: 6px; }
+      .panel { grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+      .panel .box:first-child { grid-column: 1 / -1; }
+      .panel button { padding: 10px 8px; font-size: 14px; }
+      button { width: 100%; }
+      .mobile-controls { display: grid; }
+      .hint { font-size: 12px; }
+    }
+    @media (max-width: 460px) {
+      .panel { grid-template-columns: 1fr; }
+      .mobile-controls { grid-template-columns: 1fr; }
+      #mobileFireBtn { min-height: 62px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>GunBound-like Prototype v1</h1>
+    <canvas id="game" width="1000" height="560"></canvas>
+    <div class="panel">
+      <div class="box"><strong id="turnText">Player 1 回合</strong><br><span id="statusText">調整角度與力道後發射</span><br><span id="windText">風速：0</span></div>
+      <div class="box">
+        <label>風速難度</label>
+        <select id="windMode">
+          <option value="easy">易：沒有風</option>
+          <option value="medium" selected>中：每 3 回合改變</option>
+          <option value="hard">難：每回合改變</option>
+        </select>
+      </div>
+      <div class="box">
+        <label>角度：<span id="angleVal">45</span>°</label>
+        <input id="angle" type="range" min="0" max="180" value="45" />
+      </div>
+      <div class="box">
+        <label>力道：<span id="powerVal">55</span></label>
+        <input id="power" type="range" min="15" max="100" value="55" />
+      </div>
+      <button id="fireBtn">發射</button>
+      <button id="musicBtn">開啟音樂</button>
+      <button id="resetBtn">重新開始</button>
+    </div>
+    <div class="mobile-controls" aria-label="手機觸控操作">
+      <div class="control-group">
+        <div class="control-title">角度</div>
+        <button class="touch-btn" id="angleLeftBtn">↙</button>
+        <button class="touch-btn" id="angleRightBtn">↗</button>
+      </div>
+      <div class="control-group">
+        <div class="control-title">力道</div>
+        <button class="touch-btn" id="powerDownBtn">－</button>
+        <button class="touch-btn" id="powerUpBtn">＋</button>
+      </div>
+      <button class="touch-btn" id="mobileFireBtn">發射</button>
+    </div>
+    <div class="hint">
+      操作：拖曳滑桿或使用鍵盤 <span class="kbd">←</span><span class="kbd">→</span> 調角度、<span class="kbd">↑</span><span class="kbd">↓</span> 調力道、<span class="kbd">Space</span> 發射。手機可用下方觸控按鈕。<br>
+      勝利條件：把對方坦克底下地形炸空，讓它掉出畫面下方。
+    </div>
+  </div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  const angleInput = document.getElementById('angle');
+  const powerInput = document.getElementById('power');
+  const windModeInput = document.getElementById('windMode');
+  const angleVal = document.getElementById('angleVal');
+  const powerVal = document.getElementById('powerVal');
+  const fireBtn = document.getElementById('fireBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const musicBtn = document.getElementById('musicBtn');
+  const angleLeftBtn = document.getElementById('angleLeftBtn');
+  const angleRightBtn = document.getElementById('angleRightBtn');
+  const powerDownBtn = document.getElementById('powerDownBtn');
+  const powerUpBtn = document.getElementById('powerUpBtn');
+  const mobileFireBtn = document.getElementById('mobileFireBtn');
+  const turnText = document.getElementById('turnText');
+  const statusText = document.getElementById('statusText');
+  const windText = document.getElementById('windText');
+
+  let terrain = [];
+  let tanks = [];
+  let current = 0;
+  let projectile = null;
+  let explosion = null;
+  let gameOver = false;
+  let animId = null;
+  let wind = 0;
+  let turnNumber = 1;
+  let turnChanging = false;
+  let windNoticeUntil = 0;
+  let windNoticeText = '';
+  let winnerInfo = null;
+  let audioCtx = null;
+  let musicOn = false;
+  let musicTimer = null;
+  let musicStep = 0;
+
+  const gravity = 0.075;
+  const tankW = 34;
+  const tankH = 18;
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function generateTerrain() {
+    terrain = new Array(W);
+    const base = H * 0.66;
+    const amp1 = rand(45, 85);
+    const amp2 = rand(18, 38);
+    const phase1 = rand(0, Math.PI * 2);
+    const phase2 = rand(0, Math.PI * 2);
+    for (let x = 0; x < W; x++) {
+      const y = base
+        + Math.sin(x / 95 + phase1) * amp1
+        + Math.sin(x / 38 + phase2) * amp2
+        + Math.sin(x / 210) * 35;
+      terrain[x] = Math.round(clamp(y, H * 0.42, H * 0.84));
+    }
+    // smooth
+    for (let k = 0; k < 5; k++) {
+      const copy = terrain.slice();
+      for (let x = 1; x < W - 1; x++) {
+        terrain[x] = Math.round((copy[x - 1] + copy[x] + copy[x + 1]) / 3);
+      }
+    }
+  }
+
+  function groundY(x) {
+    x = Math.round(x);
+    if (x < 0 || x >= W) return H + 1000;
+    return terrain[x];
+  }
+
+  function placeTank(tank, x) {
+    tank.x = x;
+    const landingY = findLandingY(tank, groundY(x) - tankH);
+    tank.y = landingY ?? (groundY(x) - tankH);
+  }
+
+  function sampleTankFootXs(t) {
+    const xs = [];
+    const left = Math.round(t.x - tankW / 2 + 3);
+    const right = Math.round(t.x + tankW / 2 - 3);
+    for (let x = left; x <= right; x += 2) {
+      if (x >= 0 && x < W) xs.push(x);
+    }
+    return xs;
+  }
+
+  function contactCountAtFootY(t, footY, tolerance = 5) {
+    let count = 0;
+    for (const x of sampleTankFootXs(t)) {
+      if (Math.abs(terrain[x] - footY) <= tolerance) count++;
+    }
+    return count;
+  }
+
+  function findLandingY(t, fromY = t.y) {
+    // Scan downward from the current body position and find the first height
+    // where enough bottom contact points touch the remaining terrain. This
+    // prevents a tank from falling through nearby surviving ledges or slopes.
+    const xs = sampleTankFootXs(t);
+    if (xs.length === 0) return null;
+    const minSupportPoints = 4;
+    const startFoot = Math.max(0, Math.round(fromY + tankH));
+    for (let footY = startFoot; footY <= H + 80; footY++) {
+      let support = 0;
+      for (const x of xs) {
+        if (Math.abs(terrain[x] - footY) <= 4) support++;
+      }
+      if (support >= minSupportPoints) return footY - tankH;
+    }
+    return null;
+  }
+
+  function resetGame() {
+    cancelAnimationFrame(animId);
+    generateTerrain();
+    tanks = [
+      { name: 'Player 1', color: '#2563eb', x: 120, y: 0, alive: true, falling: false, angle: 45, power: 55, buffs: { double: false, big: false } },
+      { name: 'Player 2', color: '#dc2626', x: W - 120, y: 0, alive: true, falling: false, angle: 45, power: 55, buffs: { double: false, big: false } },
+    ];
+    placeTank(tanks[0], 125);
+    placeTank(tanks[1], W - 125);
+    current = 0;
+    turnNumber = 1;
+    updateWindForTurn(true);
+    projectile = null;
+    pendingExtraShots = 0;
+    lastShotSpec = null;
+    explosion = null;
+    treasures = [];
+    nextTreasureAt = performance.now() + 1800;
+    gameOver = false;
+    turnChanging = false;
+    winnerInfo = null;
+    windNoticeUntil = performance.now() + 2000;
+    windNoticeText = '風速已更新';
+    loadCurrentPlayerControls();
+    updateUI();
+    loop();
+  }
+
+  function saveCurrentPlayerControls() {
+    if (!tanks[current]) return;
+    tanks[current].angle = Number(angleInput.value);
+    tanks[current].power = Number(powerInput.value);
+  }
+
+  function loadCurrentPlayerControls() {
+    if (!tanks[current]) return;
+    angleInput.value = tanks[current].angle ?? 45;
+    powerInput.value = tanks[current].power ?? 55;
+  }
+
+  function updateUI() {
+    angleVal.textContent = angleInput.value;
+    powerVal.textContent = powerInput.value;
+    fireBtn.disabled = !!projectile || gameOver || tanks.some(t => t.falling);
+    if (mobileFireBtn) mobileFireBtn.disabled = fireBtn.disabled;
+    turnText.textContent = gameOver ? '遊戲結束' : `${tanks[current].name} 回合`;
+    windText.textContent = `風速：${wind > 0 ? '→' : wind < 0 ? '←' : ''} ${Math.abs(wind).toFixed(1)}`;
+    if (!gameOver && !projectile) {
+      const b = tanks[current].buffs || {};
+      const buffs = [b.double ? '雙子彈' : '', b.big ? '大子彈' : ''].filter(Boolean).join('、');
+      statusText.textContent = buffs ? `調整角度與力道後發射｜已取得：${buffs}` : '調整角度與力道後發射';
+    }
+  }
+
+  function drawSky() {
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
+    grd.addColorStop(0, '#87d5ff');
+    grd.addColorStop(.58, '#d7f6ff');
+    grd.addColorStop(.581, '#f7e7bb');
+    grd.addColorStop(1, '#d7a84c');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    drawCloud(160, 80, 1.1);
+    drawCloud(650, 105, .9);
+  }
+
+  function drawCloud(x, y, s) {
+    ctx.beginPath();
+    ctx.arc(x, y, 22*s, 0, Math.PI*2);
+    ctx.arc(x+24*s, y-8*s, 30*s, 0, Math.PI*2);
+    ctx.arc(x+55*s, y, 24*s, 0, Math.PI*2);
+    ctx.arc(x+30*s, y+10*s, 25*s, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  function scheduleNextTreasure() {
+    nextTreasureAt = performance.now() + rand(3500, 7000);
+  }
+
+  function spawnTreasure(force = false) {
+    if (!force && (gameOver || treasures.length >= 3 || performance.now() < nextTreasureAt)) return;
+    const types = [
+      { type: 'double', label: '雙', icon: '②', color: '#facc15' },
+      { type: 'big', label: '大', icon: '●', color: '#fb923c' },
+      { type: 'wind', label: '風', icon: '💨', color: '#38bdf8' },
+    ];
+    const t = types[Math.floor(Math.random() * types.length)];
+    let x = rand(140, W - 140);
+    let y = rand(70, Math.min(250, H * 0.42));
+    treasures.push({ ...t, x, y, r: 18, born: performance.now() });
+    scheduleNextTreasure();
+  }
+
+  function drawTreasures() {
+    for (const item of treasures) {
+      const bob = Math.sin((performance.now() - item.born) / 350) * 4;
+      ctx.save();
+      ctx.translate(item.x, item.y + bob);
+      ctx.fillStyle = 'rgba(15,23,42,.25)';
+      ctx.beginPath(); ctx.arc(3, 4, item.r + 3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = item.color;
+      ctx.beginPath(); ctx.arc(0, 0, item.r, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#111827';
+      ctx.font = item.type === 'wind' ? 'bold 19px system-ui' : 'bold 20px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.icon, 0, 1);
+      ctx.font = 'bold 12px system-ui';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(item.label, 0, 31);
+      ctx.restore();
+    }
+  }
+
+  function collectTreasure(index) {
+    const item = treasures.splice(index, 1)[0];
+    if (!item || !projectile) return;
+    const owner = tanks[projectile.owner];
+    if (item.type === 'double') {
+      owner.buffs.double = true;
+      statusText.textContent = `${owner.name} 取得雙子彈：下一回合連射兩發！`;
+      playTreasureSound();
+    } else if (item.type === 'big') {
+      owner.buffs.big = true;
+      statusText.textContent = `${owner.name} 取得大子彈：下一回合威力 ×1.5！`;
+      playTreasureSound();
+    } else if (item.type === 'wind') {
+      randomizeWind();
+      showWindNotice('寶物改變風速！');
+      statusText.textContent = `${owner.name} 觸發風速干擾！`;
+    }
+  }
+
+
+  function drawTerrain() {
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let x = 0; x < W; x++) ctx.lineTo(x, terrain[x]);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fillStyle = '#8a5a24';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, terrain[0]);
+    for (let x = 1; x < W; x++) ctx.lineTo(x, terrain[x]);
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fillStyle = '#3f8f3d';
+    ctx.fill();
+
+    ctx.strokeStyle = '#1f6b2e';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    for (let x = 0; x < W; x++) {
+      if (x === 0) ctx.moveTo(x, terrain[x]);
+      else ctx.lineTo(x, terrain[x]);
+    }
+    ctx.stroke();
+  }
+
+  function drawTank(t, idx) {
+    if (!t.alive) return;
+    const cx = t.x, y = t.y;
+    ctx.save();
+    ctx.translate(cx, y);
+    ctx.fillStyle = t.color;
+    roundRect(ctx, -tankW/2, 5, tankW, 13, 6, true);
+    ctx.fillStyle = shade(t.color, -20);
+    roundRect(ctx, -16, 0, 32, 13, 8, true);
+    ctx.fillStyle = '#111827';
+    ctx.fillRect(-18, 15, 36, 5);
+
+    if (idx === current && !projectile && !gameOver) {
+      const angle = getShotAngleRadians(t);
+      ctx.strokeStyle = '#111827';
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 3);
+      ctx.lineTo(Math.cos(angle) * 31, Math.sin(angle) * 31);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(t.name, t.x, t.y - 8);
+  }
+
+  function roundRect(ctx, x, y, w, h, r, fill) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    if (fill) ctx.fill();
+  }
+
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) + amt, g = ((n >> 8) & 255) + amt, b = (n & 255) + amt;
+    r = clamp(r,0,255); g = clamp(g,0,255); b = clamp(b,0,255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function getShotAngleRadians(t) {
+    let deg = Number(angleInput.value);
+    // Player 1 faces right; Player 2 faces left. Same slider is intuitive for both.
+    if (t === tanks[0]) return -deg * Math.PI / 180;
+    return -(180 - deg) * Math.PI / 180;
+  }
+
+  function fire() {
+    if (projectile || gameOver || turnChanging || tanks.some(t => t.falling)) return;
+    turnChanging = false;
+    saveCurrentPlayerControls();
+    const t = tanks[current];
+    const angle = getShotAngleRadians(t);
+    const power = Number(powerInput.value) / 7.2;
+    const big = !!t.buffs.big;
+    const double = !!t.buffs.double;
+    t.buffs.big = false;
+    t.buffs.double = false;
+    pendingExtraShots = double ? 1 : 0;
+    lastShotSpec = { owner: current, angle, power, big };
+    createProjectileFromSpec(lastShotSpec);
+    statusText.textContent = double ? '雙子彈發射：第 1 發！' : (big ? '大子彈發射！' : '砲彈飛行中...');
+    playShootSound();
+    updateUI();
+  }
+
+  function createProjectileFromSpec(spec) {
+    const t = tanks[spec.owner];
+    projectile = {
+      x: t.x + Math.cos(spec.angle) * 34,
+      y: t.y + 5 + Math.sin(spec.angle) * 34,
+      vx: Math.cos(spec.angle) * spec.power,
+      vy: Math.sin(spec.angle) * spec.power,
+      r: spec.big ? 8 : 5,
+      owner: spec.owner,
+      color: t.color,
+      life: 0,
+      big: spec.big,
+      explosionRadius: spec.big ? 69 : 46,
+      tankHitRadius: spec.big ? 78 : 52,
+    };
+  }
+
+  function launchPendingExtraShot() {
+    if (pendingExtraShots <= 0 || !lastShotSpec || gameOver) return false;
+    pendingExtraShots--;
+    createProjectileFromSpec(lastShotSpec);
+    statusText.textContent = '雙子彈發射：第 2 發！';
+    playShootSound();
+    return true;
+  }
+
+  function updateProjectile() {
+    if (!projectile) return;
+    for (let step = 0; step < 1; step++) {
+      projectile.x += projectile.vx;
+      projectile.y += projectile.vy;
+      projectile.vx += wind * 0.00075;
+      projectile.vy += gravity;
+      projectile.life++;
+
+      if (projectile.x < -30 || projectile.x > W + 30 || projectile.y > H + 80) {
+        projectile = null;
+        if (launchPendingExtraShot()) return;
+        finishShotAfterSettling(250);
+        return;
+      }
+
+      for (let i = treasures.length - 1; i >= 0; i--) {
+        const item = treasures[i];
+        if (Math.hypot(projectile.x - item.x, projectile.y - item.y) <= projectile.r + item.r + 3) {
+          collectTreasure(i);
+        }
+      }
+
+      const x = Math.round(projectile.x);
+      if (x >= 0 && x < W && projectile.y >= terrain[x]) {
+        explode(projectile.x, projectile.y, projectile.explosionRadius || 46);
+        projectile = null;
+        return;
+      }
+
+      for (const [i, tank] of tanks.entries()) {
+        if (!tank.alive) continue;
+        const dx = projectile.x - tank.x;
+        const dy = projectile.y - (tank.y + tankH / 2);
+        if (Math.hypot(dx, dy) < 24 && projectile.life > 8) {
+          explode(projectile.x, projectile.y, projectile.tankHitRadius || 52);
+          projectile = null;
+          return;
+        }
+      }
+    }
+  }
+
+  function explode(cx, cy, radius) {
+    explosion = { x: cx, y: cy, r: 0, max: radius, alpha: 1 };
+    carveTerrain(cx, cy, radius);
+    statusText.textContent = '爆炸！地形被破壞';
+    playExplosionSound();
+    setTimeout(() => {
+      checkFalling();
+      if (!gameOver && !tanks.some(t => t.falling)) {
+        if (!launchPendingExtraShot()) finishShotAfterSettling(250);
+      }
+    }, 500);
+  }
+
+  function carveTerrain(cx, cy, radius) {
+    const left = Math.max(0, Math.floor(cx - radius));
+    const right = Math.min(W - 1, Math.ceil(cx + radius));
+    for (let x = left; x <= right; x++) {
+      const dx = x - cx;
+      const inside = radius * radius - dx * dx;
+      if (inside < 0) continue;
+      const topOfCrater = cy + Math.sqrt(inside);
+      if (topOfCrater > terrain[x]) {
+        terrain[x] = Math.min(H + 80, Math.round(topOfCrater));
+      }
+    }
+  }
+
+  function checkFalling() {
+    for (const tank of tanks) {
+      if (!tank.alive) continue;
+      const landingY = findLandingY(tank, tank.y);
+      if (landingY == null || landingY > H + 20) {
+        tank.falling = true;
+        tank.vy = 0;
+        statusText.textContent = `${tank.name} 腳下被挖空，開始掉落！`;
+      } else if (landingY > tank.y + 3) {
+        tank.falling = true;
+        tank.vy = 0;
+        tank.targetY = landingY;
+        statusText.textContent = `${tank.name} 腳下被挖空，往下掉落！`;
+      } else {
+        tank.falling = false;
+        tank.targetY = null;
+        tank.y = landingY;
+      }
+    }
+    updateUI();
+  }
+
+  function supportedAmount(t) {
+    return contactCountAtFootY(t, t.y + tankH, 5);
+  }
+
+  function updateFallingTanks() {
+    let any = false;
+    for (const t of tanks) {
+      if (!t.alive || !t.falling) continue;
+      any = true;
+      t.vy = Math.min((t.vy || 0) + 0.28, 5.2);
+      const nextY = t.y + t.vy;
+      const landingY = findLandingY(t, t.y);
+      if (landingY != null && landingY <= nextY + 1) {
+        t.y = landingY;
+        t.falling = false;
+        t.vy = 0;
+        t.targetY = null;
+        statusText.textContent = `${t.name} 落到剩餘地形上。`;
+        if (!gameOver && !tanks.some(o => o.falling)) {
+          if (!launchPendingExtraShot()) finishShotAfterSettling(300);
+        }
+        continue;
+      }
+      t.y = nextY;
+      if (t.y + tankH >= H) {
+        t.y = H - tankH;
+        t.alive = false;
+        gameOver = true;
+        const winner = tanks.find(o => o !== t);
+        winnerInfo = { name: winner.name, color: winner.color };
+        statusText.textContent = `${winner.name} 獲勝！`;
+        turnText.textContent = '遊戲結束';
+        playWinSound();
+      }
+    }
+    if (!any) return;
+    updateUI();
+  }
+
+  function randomizeWind() {
+    const old = wind;
+    wind = rand(-70, 70);
+    if (Math.abs(wind) < 8) wind = 0;
+    return Math.abs(old - wind) > 0.1;
+  }
+
+  function showWindNotice(prefix = '風速改變') {
+    windNoticeUntil = performance.now() + 2000;
+    windNoticeText = `${prefix}：${wind > 0 ? '→' : wind < 0 ? '←' : ''} ${Math.abs(wind).toFixed(1)}`;
+    playWindSound();
+  }
+
+  function updateWindForTurn(force = false) {
+    const mode = windModeInput.value;
+    let changed = false;
+    if (mode === 'easy') {
+      changed = wind !== 0;
+      wind = 0;
+    } else if (mode === 'hard') {
+      changed = randomizeWind();
+    } else {
+      // 中等：第 1 回合先產生風速，之後每 3 回合改變一次。
+      if (force || turnNumber === 1 || (turnNumber - 1) % 3 === 0) changed = randomizeWind();
+    }
+    if (changed || force) showWindNotice();
+  }
+
+  function finishShotAfterSettling(delay = 250) {
+    if (turnChanging || gameOver) return;
+    turnChanging = true;
+    setTimeout(() => {
+      turnChanging = false;
+      if (!gameOver && !projectile && !tanks.some(t => t.falling)) nextTurn();
+    }, delay);
+  }
+
+  function nextTurn() {
+    if (gameOver || projectile || tanks.some(t => t.falling)) return;
+    saveCurrentPlayerControls();
+    current = 1 - current;
+    turnNumber++;
+    updateWindForTurn(false);
+    loadCurrentPlayerControls();
+    statusText.textContent = `${tanks[current].name} 的回合`;
+    updateUI();
+  }
+
+  function updateExplosion() {
+    if (!explosion) return;
+    explosion.r += 4.5;
+    explosion.alpha -= 0.045;
+    if (explosion.r >= explosion.max || explosion.alpha <= 0) explosion = null;
+  }
+
+  function drawProjectile() {
+    if (!projectile) return;
+    ctx.fillStyle = projectile.color || '#111827';
+    ctx.beginPath();
+    ctx.arc(projectile.x, projectile.y, projectile.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawExplosion() {
+    if (!explosion) return;
+    ctx.save();
+    ctx.globalAlpha = explosion.alpha;
+    ctx.fillStyle = '#f97316';
+    ctx.beginPath();
+    ctx.arc(explosion.x, explosion.y, explosion.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#fef3c7';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawWindNotice() {
+    const remain = windNoticeUntil - performance.now();
+    if (remain <= 0) return;
+    const alpha = Math.min(1, remain / 450);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(W / 2, 96);
+    ctx.fillStyle = 'rgba(15,23,42,.72)';
+    roundRect(ctx, -145, -42, 290, 84, 18, true);
+    ctx.font = 'bold 34px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e0f2fe';
+    const arrow = wind > 0 ? '➜' : wind < 0 ? '⬅' : '○';
+    ctx.fillText(`💨 ${arrow}`, 0, -4);
+    ctx.font = 'bold 19px system-ui';
+    ctx.fillText(windNoticeText, 0, 28);
+    ctx.restore();
+  }
+
+  function drawWinnerNotice() {
+    if (!winnerInfo) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(15,23,42,.55)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 56px system-ui';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(255,255,255,.88)';
+    ctx.fillStyle = winnerInfo.color;
+    const msg = `${winnerInfo.name} 獲勝！`;
+    ctx.strokeText(msg, W/2, H/2);
+    ctx.fillText(msg, W/2, H/2);
+    ctx.font = '20px system-ui';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('按「重新開始」再玩一局', W/2, H/2 + 44);
+    ctx.restore();
+  }
+
+  function drawAimGuide() {
+    if (projectile || gameOver) return;
+    const t = tanks[current];
+    const angle = getShotAngleRadians(t);
+    const power = Number(powerInput.value) / 7.2;
+    let x = t.x + Math.cos(angle) * 34;
+    let y = t.y + 5 + Math.sin(angle) * 34;
+    let vx = Math.cos(angle) * power;
+    let vy = Math.sin(angle) * power;
+    ctx.save();
+    ctx.fillStyle = 'rgba(17,24,39,.35)';
+    for (let i = 0; i < 90; i += 6) {
+      let px = x, py = y, pvx = vx, pvy = vy;
+      for (let k = 0; k < i; k++) { px += pvx; py += pvy; pvx += wind * 0.00075; pvy += gravity; }
+      if (px < 0 || px >= W || py >= H) break;
+      ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function render() {
+    drawSky();
+    drawTerrain();
+    drawTreasures();
+    drawAimGuide();
+    tanks.forEach(drawTank);
+    drawProjectile();
+    drawExplosion();
+    drawWindNotice();
+    drawWinnerNotice();
+  }
+
+  function loop() {
+    spawnTreasure(false);
+    updateProjectile();
+    updateExplosion();
+    updateFallingTanks();
+    render();
+    animId = requestAnimationFrame(loop);
+  }
+
+
+  function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playTone(freq, duration, type = 'sine', gain = 0.04, when = 0) {
+    if (!audioCtx || !musicOn && gain <= 0.025) return;
+    const ac = ensureAudio();
+    const t0 = ac.currentTime + when;
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(g).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.03);
+  }
+
+  function playShootSound() {
+    ensureAudio();
+    for (let i = 0; i < 5; i++) playTone(180 - i * 18, 0.09, 'square', 0.045, i * 0.025);
+  }
+
+  function playExplosionSound() {
+    ensureAudio();
+    for (let i = 0; i < 8; i++) playTone(95 + Math.random() * 60, 0.16, 'sawtooth', 0.035, i * 0.018);
+  }
+
+  function playWindSound() {
+    if (!audioCtx) return;
+    playTone(430, 0.12, 'triangle', 0.018, 0);
+    playTone(560, 0.12, 'triangle', 0.014, 0.09);
+  }
+
+  function playTreasureSound() {
+    ensureAudio();
+    [660, 880, 1175].forEach((f, i) => playTone(f, 0.12, 'triangle', 0.035, i * 0.07));
+  }
+
+  function playWinSound() {
+    ensureAudio();
+    [523, 659, 784, 1046].forEach((f, i) => playTone(f, 0.28, 'triangle', 0.05, i * 0.12));
+  }
+
+  function toggleMusic() {
+    musicOn = !musicOn;
+    ensureAudio();
+    musicBtn.textContent = musicOn ? '關閉音樂' : '開啟音樂';
+    if (!musicOn) {
+      clearInterval(musicTimer);
+      musicTimer = null;
+      return;
+    }
+    const melody = [262, 330, 392, 330, 294, 349, 440, 349];
+    const bass = [131, 131, 147, 147, 165, 165, 147, 147];
+    musicTimer = setInterval(() => {
+      if (!musicOn) return;
+      const i = musicStep % melody.length;
+      playTone(melody[i], 0.22, 'sine', 0.018);
+      if (i % 2 === 0) playTone(bass[i], 0.36, 'triangle', 0.012);
+      musicStep++;
+    }, 420);
+  }
+
+
+  function controlsLocked() {
+    return !!projectile || gameOver || tanks.some(t => t.falling);
+  }
+
+  function adjustAngleFromDirection(dir) {
+    if (controlsLocked()) return;
+    // dir = -1 means the left-side touch button / left keyboard direction.
+    // Player 1 faces right, so left raises angle; Player 2 faces left, so left lowers angle.
+    const delta = current === 0 ? -dir : dir;
+    angleInput.value = clamp(Number(angleInput.value) + delta, 0, 180);
+    saveCurrentPlayerControls();
+    updateUI();
+  }
+
+  function adjustPower(delta) {
+    if (controlsLocked()) return;
+    powerInput.value = clamp(Number(powerInput.value) + delta, 15, 100);
+    saveCurrentPlayerControls();
+    updateUI();
+  }
+
+  function bindHoldButton(btn, action) {
+    let timer = null;
+    let repeating = false;
+    const stop = (e) => {
+      if (e) e.preventDefault();
+      clearTimeout(timer);
+      clearInterval(timer);
+      timer = null;
+      repeating = false;
+    };
+    const start = (e) => {
+      e.preventDefault();
+      ensureAudio();
+      action();
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        repeating = true;
+        clearInterval(timer);
+        timer = setInterval(action, 90);
+      }, 320);
+    };
+    btn.addEventListener('pointerdown', start);
+    btn.addEventListener('pointerup', stop);
+    btn.addEventListener('pointercancel', stop);
+    btn.addEventListener('pointerleave', stop);
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
+  angleInput.addEventListener('input', () => { saveCurrentPlayerControls(); updateUI(); });
+  powerInput.addEventListener('input', () => { saveCurrentPlayerControls(); updateUI(); });
+  windModeInput.addEventListener('change', () => { updateWindForTurn(true); updateUI(); });
+  fireBtn.addEventListener('click', fire);
+  resetBtn.addEventListener('click', resetGame);
+  musicBtn.addEventListener('click', toggleMusic);
+
+  window.addEventListener('keydown', (e) => {
+    if (controlsLocked()) return;
+    let handled = true;
+    if (e.key === 'ArrowLeft') adjustAngleFromDirection(-1);
+    else if (e.key === 'ArrowRight') adjustAngleFromDirection(1);
+    else if (e.key === 'ArrowUp') adjustPower(1);
+    else if (e.key === 'ArrowDown') adjustPower(-1);
+    else if (e.code === 'Space') fire();
+    else handled = false;
+    if (handled) e.preventDefault();
+  });
+
+  bindHoldButton(angleLeftBtn, () => adjustAngleFromDirection(-1));
+  bindHoldButton(angleRightBtn, () => adjustAngleFromDirection(1));
+  bindHoldButton(powerDownBtn, () => adjustPower(-1));
+  bindHoldButton(powerUpBtn, () => adjustPower(1));
+  mobileFireBtn.addEventListener('click', (e) => { e.preventDefault(); ensureAudio(); fire(); });
+
+  resetGame();
+})();
+</script>
+</body>
+</html>
