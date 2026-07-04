@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Project SRPG v1 - State Machine</title>
+<style>
+  :root{--bg:#172033;--panel:rgba(20,28,44,.92);--panel2:rgba(255,255,255,.08);--text:#f4f7ff;--muted:#b8c2d8;--blue:#63a9ff;--red:#ff6b6b;--yellow:#ffe07a;--green:#69d17d;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:linear-gradient(180deg,#10192b,#1a263d 55%,#111827);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif;overflow:hidden;touch-action:manipulation;}
+  #app{width:100vw;height:100dvh;display:flex;flex-direction:column;}
+  header{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:rgba(8,13,24,.72);border-bottom:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px);z-index:5;}
+  .title{font-weight:800;letter-spacing:.5px}.status{font-size:14px;color:var(--muted)}.status strong{color:#fff}
+  #mapWrap{position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:10px 10px 132px;}
+  #boardArea{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+  canvas{width:min(96vw, calc((100dvh - 200px) * 1.2));max-width:900px;aspect-ratio:12/10;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.15);background:#20304b;image-rendering:auto;}
+  #toast{position:absolute;top:16px;left:50%;transform:translateX(-50%);padding:9px 14px;border-radius:999px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.12);font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:4;white-space:nowrap;}
+  #toast.show{opacity:1;top:22px}
+  #sheet{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid rgba(255,255,255,.12);box-shadow:0 -16px 36px rgba(0,0,0,.35);border-radius:20px 20px 0 0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));min-height:118px;transform:translateY(0);transition:.22s ease;z-index:6;backdrop-filter:blur(12px);}
+  #sheet.compact{min-height:76px}.sheetTop{display:flex;align-items:center;justify-content:space-between;gap:12px}.unitName{font-weight:900;font-size:18px}.unitSub{font-size:13px;color:var(--muted);margin-top:2px}
+  .hpbar{height:9px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden;margin:9px 0 0}.hpfill{height:100%;background:linear-gradient(90deg,#45d483,#c4f55f);width:100%}.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .chip{background:var(--panel2);padding:6px 9px;border-radius:999px;font-size:13px;color:#eef3ff;border:1px solid rgba(255,255,255,.08);}.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  button{border:0;border-radius:13px;padding:10px 14px;font-weight:800;color:#111827;background:#e8eefc;cursor:pointer;font-size:14px;}button.primary{background:#6aa9ff;color:white}button.danger{background:#ff7171;color:white}button:disabled{opacity:.45;cursor:not-allowed}
+  #legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-start;font-size:12px;color:#e8eefc;}.legendItem{background:rgba(0,0,0,.38);padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.08)}
+  #guidePanel{display:none;background:var(--panel);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.28);backdrop-filter:blur(10px);padding:10px;max-height:calc(100dvh - 230px);overflow:auto;min-width:320px;}
+  .guideSection{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px}.guideSection + .guideSection{margin-top:10px}.guideTitle{font-size:14px;font-weight:800;margin:0 0 8px}
+  .guideTable{width:100%;border-collapse:collapse;font-size:12px;line-height:1.35}.guideTable th,.guideTable td{border-bottom:1px solid rgba(255,255,255,.1);padding:6px 4px;text-align:left;vertical-align:top}.guideTable th{color:#d9e6ff;font-weight:700}.guideTable td{color:#f3f7ff}.guideTable tr:last-child td{border-bottom:0}
+
+  .systemControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .systemControls label{font-size:13px;color:var(--muted);font-weight:800}
+  select{
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:12px;
+    padding:9px 10px;
+    background:#e8eefc;
+    color:#111827;
+    font-weight:800;
+    font-size:14px;
+  }
+  #overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);display:none;align-items:center;justify-content:center;z-index:20;padding:22px;text-align:center;}#overlay.show{display:flex}#overlay.victory{background:radial-gradient(circle at 50% 35%,rgba(99,169,255,.20),rgba(5,8,15,.84) 58%)}#overlay.defeat{background:radial-gradient(circle at 50% 35%,rgba(255,107,107,.16),rgba(5,8,15,.86) 58%)}.modal{background:rgba(22,32,52,.96);border:1px solid rgba(255,255,255,.15);border-radius:22px;padding:24px;max-width:420px;box-shadow:0 25px 80px rgba(0,0,0,.45)}.modal h1{margin:0 0 10px;font-size:28px}.modal p{color:var(--muted);line-height:1.65}.battleReport{width:min(460px,92vw);position:relative;overflow:hidden}.battleReport:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.08),transparent 45%);pointer-events:none}.resultKicker{font-size:13px;color:#d7e5ff;font-weight:900;letter-spacing:.18em;text-transform:uppercase;margin-bottom:8px}.resultRank{font-size:20px;font-weight:900;color:#ffe07a;margin:8px 0 14px;text-shadow:0 2px 14px rgba(255,224,122,.25)}.resultStats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.resultStat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:10px}.resultStat b{display:block;font-size:20px;color:#fff}.resultStat span{display:block;font-size:12px;color:var(--muted);margin-top:2px}.resultComment{font-weight:700;color:#eef4ff!important}.resultActions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}.resultActions button{min-width:150px}
+  @media (min-width:900px){#sheet{left:50%;right:auto;bottom:18px;transform:translateX(-50%);width:min(760px,82vw);border-radius:20px;border:1px solid rgba(255,255,255,.12);}#mapWrap{padding-bottom:150px}}
+  @media (min-width:1200px){#mapWrap{display:grid;grid-template-columns:340px minmax(0,1fr) 340px;align-items:center;gap:12px;padding:10px 12px 150px;}#boardArea{grid-column:2}#guidePanel{grid-column:3;display:flex;flex-direction:column}canvas{width:min(100%, calc((100dvh - 220px) * 1.2));}}
+</style>
+</head>
+<body>
+<div id="app"><header><div><div class="title">Project SRPG v1</div><div class="status">第 <strong id="turnNo">1</strong> 回合 · <strong id="phaseText">玩家回合</strong></div></div><button id="endTurnBtn" class="primary">結束回合</button></header>
+<main id="mapWrap"><div id="boardArea"><canvas id="game" width="960" height="800"></canvas><div id="toast"></div></div><aside id="guidePanel" aria-label="職業與規則說明"><section class="guideSection"><h2 class="guideTitle">戰場圖例</h2><div id="legend"><span class="legendItem">🟦 可移動</span><span class="legendItem">🟥 可攻擊</span><span class="legendItem">🌲 弓手+攻</span><span class="legendItem">🌊 騎士+防</span><span class="legendItem">🪨 不可通行 / 擋視線</span></div></section><section class="guideSection"><h2 class="guideTitle">職業屬性</h2><table class="guideTable"><thead><tr><th>職業</th><th>HP</th><th>ATK</th><th>DEF</th><th>Move</th><th>Range</th></tr></thead><tbody id="jobTableBody"></tbody></table></section><section class="guideSection"><h2 class="guideTitle">條件修正</h2><table class="guideTable"><thead><tr><th>條件</th><th>效果</th></tr></thead><tbody id="bonusTableBody"></tbody></table></section><section class="guideSection" style="margin-top:auto"><h2 class="guideTitle">系統</h2><div class="systemControls"><label for="difficultySelect">難度</label><select id="difficultySelect" aria-label="難度"><option value="easy" selected>易：4 敵人</option><option value="normal">中：5 敵人</option><option value="hard">難：6 敵人</option></select><button id="restartBtn">重新開始</button></div></section></aside></main>
+<section id="sheet" class="compact"><div class="sheetTop"><div><div class="unitName" id="unitName">選擇一名角色開始</div><div class="unitSub" id="unitSub">點擊角色 → 點藍格移動 → 點紅格攻擊</div></div><div class="chip" id="terrainInfo">草地 / 森林 / 河流 / 岩石</div></div><div class="hpbar"><div class="hpfill" id="hpFill"></div></div><div class="stats" id="stats"></div><div class="actions"><button id="waitBtn">休息</button><button id="cancelBtn">取消選取</button></div></section></div>
+<div id="overlay"><div class="modal battleReport"><div class="resultKicker">戰後報告</div><h1 id="resultTitle">勝利！</h1><div id="resultRank" class="resultRank">★★★★★ 完美勝利</div><div id="resultStats" class="resultStats"></div><p id="resultText">你擊敗了所有敵人。</p><p id="resultComment" class="resultComment">所有隊員平安歸來。</p><div class="resultActions"><button id="retrySameMapBtn" class="primary">再次挑戰同一關</button><button id="newBattleBtn">開始新的戰場</button></div></div></div>
+<script>
+const ActionState=Object.freeze({READY:'READY',MOVED:'MOVED',PURSUIT:'PURSUIT',DONE:'DONE'});
+const W=12,H=10,T=80;
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const UI={turnNo:document.getElementById('turnNo'),phaseText:document.getElementById('phaseText'),unitName:document.getElementById('unitName'),unitSub:document.getElementById('unitSub'),terrainInfo:document.getElementById('terrainInfo'),stats:document.getElementById('stats'),hpFill:document.getElementById('hpFill'),waitBtn:document.getElementById('waitBtn'),cancelBtn:document.getElementById('cancelBtn'),endTurnBtn:document.getElementById('endTurnBtn'),restartBtn:document.getElementById('restartBtn'),difficultySelect:document.getElementById('difficultySelect'),retrySameMapBtn:document.getElementById('retrySameMapBtn'),newBattleBtn:document.getElementById('newBattleBtn'),overlay:document.getElementById('overlay'),resultTitle:document.getElementById('resultTitle'),resultRank:document.getElementById('resultRank'),resultStats:document.getElementById('resultStats'),resultText:document.getElementById('resultText'),resultComment:document.getElementById('resultComment'),toast:document.getElementById('toast'),sheet:document.getElementById('sheet'),jobTableBody:document.getElementById('jobTableBody'),bonusTableBody:document.getElementById('bonusTableBody')};
+const TERRAIN={G:{name:'草地',pass:true,color:'#74b85f'},F:{name:'森林',pass:true,color:'#2f8d55'},R:{name:'岩石',pass:false,color:'#7d7a72'},W:{name:'河流',pass:true,color:'#3a97c9'}};
+const JOBS={warrior:{name:'戰士',icon:'⚔️',hp:22,atk:6,def:4,move:4,range:1,color:'#e45858',trait:'主動擊倒敵人時，每回合可追擊移動 1 次'},knight:{name:'騎士',icon:'🛡️',hp:18,atk:5,def:6,move:6,range:1,color:'#4e8df5',trait:'每回合第一次受攻擊傷害 -1'},archer:{name:'弓箭手',icon:'🏹',hp:14,atk:5,def:3,move:5,range:2,color:'#42b66f',trait:'站森林時 ATK +1'},mage:{name:'法師',icon:'🔮',hp:12,atk:7,def:2,move:3,range:2,color:'#9b6bff',trait:'攻擊時無視敵人 1 點防禦'}};
+const DEFAULT_LEVEL_MAP=['GGGGGGGGGGGG','GGGFFGGGGRGG','GGGFFGGGRRGG','GGGGGGGGRGGG','GGGGRRWWWWGG','GGGGGGWWGGGG','GGFFGGGGGGGG','GGFFGGGRRGGG','GGGGGGGGGGGG','GGGGGGGGGGGG'];
+let levelMap=DEFAULT_LEVEL_MAP.slice();
+let state,selected=null,selectedTerrain=null,moveCells=[],attackCells=[],anim=null,toastTimer=null;const fx={damageTexts:[],turnBanner:null};
+const DIFFICULTIES={
+  easy:{label:'易',enemyCount:4},
+  normal:{label:'中',enemyCount:5},
+  hard:{label:'難',enemyCount:6}
+};
+const AI_WEIGHTS={
+  kill:500,
+  vulnerable:160,
+  lowHp:100,
+  damage:20,
+  terrain:20,
+  targetPriority:{mage:30,archer:20,warrior:10,knight:5},
+  chaseDistance:12
+};
+
+const ENEMY_PRESETS=[
+  ['warrior',9,1,'敵戰士A'],
+  ['warrior',10,2,'敵戰士B'],
+  ['knight',9,3,'敵騎士'],
+  ['archer',8,2,'敵弓手'],
+  ['mage',10,4,'敵法師'],
+  ['archer',7,1,'敵弓手B']
+];
+function currentDifficulty(){
+  const key=UI.difficultySelect?UI.difficultySelect.value:'easy';
+  return DIFFICULTIES[key]||DIFFICULTIES.easy;
+}
+function createEnemyUnits(startId){
+  let id=startId;
+  const count=currentDifficulty().enemyCount;
+  return ENEMY_PRESETS.slice(0,count).map(([job,x,y,name])=>makeUnit(id++,'E',job,x,y,name));
+}
+
+
+function weightedTerrain(){
+  const r=Math.random();
+  if(r<0.50) return 'G';
+  if(r<0.70) return 'F';
+  if(r<0.85) return 'W';
+  return 'R';
+}
+function isSpawnSafeCell(x,y){
+  // 玩家左下與敵人右上的出生區保持草地，避免開局被岩石卡死。
+  return (x<=3 && y>=6) || (x>=7 && y<=4);
+}
+function hasPathOnMap(map,sx,sy,tx,ty){
+  const q=[[sx,sy]], seen=new Set([sx+','+sy]);
+  for(let i=0;i<q.length;i++){
+    const [x,y]=q[i];
+    if(x===tx&&y===ty) return true;
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=x+dx,ny=y+dy,k=nx+','+ny;
+      if(nx<0||nx>=W||ny<0||ny>=H||seen.has(k)) continue;
+      if(map[ny][nx]==='R') continue;
+      seen.add(k); q.push([nx,ny]);
+    }
+  }
+  return false;
+}
+function longestRockRun(map){
+  let best=0;
+  for(let y=0;y<H;y++){
+    let run=0;
+    for(let x=0;x<W;x++){run=map[y][x]==='R'?run+1:0;best=Math.max(best,run);}
+  }
+  for(let x=0;x<W;x++){
+    let run=0;
+    for(let y=0;y<H;y++){run=map[y][x]==='R'?run+1:0;best=Math.max(best,run);}
+  }
+  return best;
+}
+function generateRandomMap(){
+  for(let attempt=0;attempt<200;attempt++){
+    const grid=[];
+    for(let y=0;y<H;y++){
+      let row='';
+      for(let x=0;x<W;x++) row += isSpawnSafeCell(x,y) ? 'G' : weightedTerrain();
+      grid.push(row);
+    }
+
+    // 確保主要出生點彼此可達，並避免岩石形成太長的牆。
+    if(!hasPathOnMap(grid,1,8,9,1)) continue;
+    if(!hasPathOnMap(grid,2,7,10,2)) continue;
+    if(longestRockRun(grid)>4) continue;
+    return grid;
+  }
+  // 如果隨機多次都不合法，就回退到手工地圖。
+  return DEFAULT_LEVEL_MAP.slice();
+}
+function renderGuidePanel(){const order=['warrior','knight','archer','mage'];UI.jobTableBody.innerHTML=order.map(key=>{const j=JOBS[key];return `<tr><td>${j.icon} ${j.name}</td><td>${j.hp}</td><td>${j.atk}</td><td>${j.def}</td><td>${j.move}</td><td>${j.range}</td></tr>`}).join('');const rows=[['弓箭手站在森林','ATK +1'],['騎士站在河流','DEF +1'],['法師攻擊時','目標有效防禦 -1（最低 0）'],['騎士每回合首次受擊','本次傷害 -1（最低傷害仍為 1）'],['戰士主動擊倒敵人','每回合最多 1 次追擊移動，之後 DONE'],['岩石','阻擋弓箭手與法師的直線視線'],['隨機地圖','玩家左下與敵人右上出生區固定草地；其餘區域約為草地 50%、森林 20%、河流 15%、岩石 15%'],['敵方 AI','攻擊時使用評分制：擊倒 > 殘血 > 最大傷害 > 地形 > 目標職業價值'],['敵方牽制','進入一格時，若該格上下左右有 x 個敵人，移動成本為 1+x'],['集氣','我方角色主動擊倒敵人獲得 1 氣；集滿 2 氣後，下回合攻擊自動變大絕'],['大絕','戰士 ATK×2；騎士補目標上下左右我方 3 HP；弓箭手射程 4；法師讓目標上下左右敵方 -1 HP']];UI.bonusTableBody.innerHTML=rows.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join('')}
+function newGame(keepMap=false){
+  if(!keepMap)levelMap=generateRandomMap();
+  let id=1;
+  const players=[
+    makeUnit(id++,'P','warrior',1,8,'亞倫'),
+    makeUnit(id++,'P','knight',2,8,'布萊恩'),
+    makeUnit(id++,'P','archer',1,7,'琳娜'),
+    makeUnit(id++,'P','mage',2,7,'米菈')
+  ];
+  const enemies=createEnemyUnits(id);
+  state={turn:1,phase:'player',mode:'idle',busy:false,units:[...players,...enemies]};
+  selected=null;selectedTerrain=null;moveCells=[];attackCells=[];anim=null;fx.damageTexts=[];fx.turnBanner=null;
+  UI.overlay.classList.remove('show','victory','defeat');
+  updateUI();draw();
+  showToast(`${keepMap?'同一關再挑戰':'隨機地圖'}：${currentDifficulty().label}，敵人 ${enemies.length} 名`);
+  showTurnBanner('PLAYER TURN');
+}
+function makeUnit(id,team,job,x,y,name){const j=JOBS[job];return {id,team,job,name,x,y,hp:j.hp,maxHp:j.hp,actionState:ActionState.READY,guardUsed:false,pursuitUsed:false,charge:0,ultimatePending:false,ultimateReady:false,dead:false}}
+function terrainAt(x,y){return TERRAIN[levelMap[y][x]]}function unitAt(x,y){return state.units.find(u=>!u.dead&&u.x===x&&u.y===y)}function dist(a,b,c,d){return Math.abs(a-c)+Math.abs(b-d)}function inBoard(x,y){return x>=0&&x<W&&y>=0&&y<H}
+function canTraverse(x,y,self=null){if(!inBoard(x,y)||!terrainAt(x,y).pass)return false;const occ=unitAt(x,y);if(!occ||occ===self)return true;return self&&occ.team===self.team}
+function canStop(x,y,self=null){if(!inBoard(x,y)||!terrainAt(x,y).pass)return false;const occ=unitAt(x,y);return !occ||occ===self}
+function calcStats(u){const j=JOBS[u.job];let atk=j.atk,def=j.def,range=j.range;const t=levelMap[u.y][u.x];if(u.job==='archer'&&t==='F')atk+=1;if(u.job==='knight'&&t==='W')def+=1;if(u.team==='P'&&u.ultimateReady&&u.job==='archer')range=4;return {hp:u.hp,maxHp:u.maxHp,atk,def,move:j.move,range}}
+function damage(att,defender,isUltimate=false){const a=calcStats(att),d=calcStats(defender);let atk=a.atk;if(isUltimate&&att.team==='P'&&att.job==='warrior')atk*=2;let effDef=d.def;if(att.job==='mage')effDef=Math.max(0,effDef-1);let dmg=Math.max(1,atk-effDef);if(defender.job==='knight'&&!defender.guardUsed){dmg=Math.max(1,dmg-1);defender.guardUsed=true}return dmg}
+function adjacentEnemyCount(x,y,team){let count=0;for(const [dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const u=unitAt(x+dx,y+dy);if(u&&!u.dead&&u.team!==team)count++}return count}
+function moveCostTo(x,y,u){return 1+adjacentEnemyCount(x,y,u.team)}
+function getMoveCells(u){
+  const max=calcStats(u).move;
+  const startKey=u.x+','+u.y;
+  const best=new Map([[startKey,0]]);
+  const pq=[{x:u.x,y:u.y,cost:0}];
+  const out=[];
+
+  while(pq.length){
+    pq.sort((a,b)=>a.cost-b.cost);
+    const cur=pq.shift();
+    const key=cur.x+','+cur.y;
+    if(cur.cost!==best.get(key))continue;
+
+    if(cur.cost>0&&canStop(cur.x,cur.y,u))out.push({x:cur.x,y:cur.y});
+    if(cur.cost>=max)continue;
+
+    for(const [dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cur.x+dx,ny=cur.y+dy;
+      if(!canTraverse(nx,ny,u))continue;
+      const nextCost=cur.cost+moveCostTo(nx,ny,u);
+      if(nextCost>max)continue;
+      const nk=nx+','+ny;
+      if(!best.has(nk)||nextCost<best.get(nk)){
+        best.set(nk,nextCost);
+        pq.push({x:nx,y:ny,cost:nextCost});
+      }
+    }
+  }
+  return out;
+}
+function getPursuitCells(u){const out=[];for(const [dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=u.x+dx,ny=u.y+dy;if(canStop(nx,ny,u))out.push({x:nx,y:ny})}return out}
+function hasLineOfSight(ax,ay,bx,by){if(ax===bx&&ay===by)return false;/* LOS only blocks attacks that travel along the same row/column. Diamond-range targets such as upper-right/lower-left remain valid unless we later add a full line-of-sight model. */if(ax!==bx&&ay!==by)return true;const dx=Math.sign(bx-ax),dy=Math.sign(by-ay);let x=ax+dx,y=ay+dy;while(x!==bx||y!==by){if(levelMap[y][x]==='R')return false;x+=dx;y+=dy}return true}
+function canAttackCellFrom(u,x,y,tx,ty){const r=calcStats(u).range,d=dist(x,y,tx,ty);if(d<=0||d>r)return false;if(r<=1)return true;return hasLineOfSight(x,y,tx,ty)}
+function canAttackUnitFrom(u,x,y,target){return target&&!target.dead&&target.team!==u.team&&canAttackCellFrom(u,x,y,target.x,target.y)}
+function getAttackCells(u){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(canAttackCellFrom(u,u.x,u.y,x,y))out.push({x,y});return out}
+function findPath(u,tx,ty,maxSteps=calcStats(u).move){
+  const startKey=u.x+','+u.y;
+  const best=new Map([[startKey,0]]),prev=new Map();
+  const pq=[{x:u.x,y:u.y,cost:0}];
+
+  while(pq.length){
+    pq.sort((a,b)=>a.cost-b.cost);
+    const cur=pq.shift();
+    const key=cur.x+','+cur.y;
+    if(cur.cost!==best.get(key))continue;
+
+    if(cur.x===tx&&cur.y===ty){
+      const path=[];
+      let k=key;
+      while(k){const [px,py]=k.split(',').map(Number);path.push({x:px,y:py});k=prev.get(k)}
+      return path.reverse();
+    }
+    if(cur.cost>=maxSteps)continue;
+
+    for(const [dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cur.x+dx,ny=cur.y+dy,k=nx+','+ny;
+      if(!canTraverse(nx,ny,u)||(nx===tx&&ny===ty?!canStop(nx,ny,u):false))continue;
+      const nextCost=cur.cost+moveCostTo(nx,ny,u);
+      if(nextCost>maxSteps)continue;
+      if(!best.has(k)||nextCost<best.get(k)){
+        best.set(k,nextCost);
+        prev.set(k,key);
+        pq.push({x:nx,y:ny,cost:nextCost});
+      }
+    }
+  }
+  return [{x:u.x,y:u.y},{x:tx,y:ty}]
+}
+function isPlayersTurn(){return state.phase==='player'}function isOwnActiveUnit(u){return isPlayersTurn()&&u&&u.team==='P'&&!u.dead}function canMove(u){return isOwnActiveUnit(u)&&u.actionState===ActionState.READY}function canAttack(u){return isOwnActiveUnit(u)&&(u.actionState===ActionState.READY||u.actionState===ActionState.MOVED)}function canRest(u){return isOwnActiveUnit(u)&&u.actionState===ActionState.READY}function canPursuitMove(u){return isOwnActiveUnit(u)&&u.job==='warrior'&&u.actionState===ActionState.PURSUIT&&u.pursuitUsed}function hasAttackTarget(u){if(!u||u.dead)return false;return state.units.some(v=>canAttackUnitFrom(u,u.x,u.y,v))}function playerCanStillAct(u){if(!isOwnActiveUnit(u))return false;if(u.actionState===ActionState.READY)return true;if(u.actionState===ActionState.PURSUIT)return true;if(u.actionState===ActionState.MOVED)return hasAttackTarget(u);return false}function finishUnitAction(u){if(u&&!u.dead)u.actionState=ActionState.DONE}
+function enterPursuitIfAllowed(att,killed,isActiveAttack){const ok=killed&&isActiveAttack&&isPlayersTurn()&&att.team==='P'&&att.job==='warrior'&&!att.pursuitUsed&&!att.dead;if(!ok)return false;const cells=getPursuitCells(att);if(!cells.length){finishUnitAction(att);return false}att.pursuitUsed=true;att.actionState=ActionState.PURSUIT;selected=att;selectedTerrain=null;moveCells=cells;attackCells=[];state.mode='pursuit';state.busy=false;updateUI();draw();checkEnd();showToast(`${att.name} 發動追擊：只能再移動 1 格`);return true}
+function refreshSelectionRanges(){moveCells=[];attackCells=[];if(!selected||selected.dead)return;if(selected.team==='P'){if(selected.actionState===ActionState.READY){moveCells=getMoveCells(selected);attackCells=getAttackCells(selected);state.mode='selected'}else if(selected.actionState===ActionState.MOVED){attackCells=getAttackCells(selected);state.mode='moved'}else if(selected.actionState===ActionState.PURSUIT){moveCells=getPursuitCells(selected);state.mode='pursuit'}else state.mode='inspect'}else state.mode='inspect'}
+function selectUnit(u){if(state.busy||!isPlayersTurn())return;selectedTerrain=null;selected=u;refreshSelectionRanges();updateUI();draw()}function inspectTerrain(x,y){selected=null;selectedTerrain={x,y,type:levelMap[y][x]};moveCells=[];attackCells=[];state.mode='terrain';updateUI();draw()}function clearSelection(){selected=null;selectedTerrain=null;moveCells=[];attackCells=[];state.mode='idle';updateUI();draw()}
+function moveUnitAnimated(u,x,y,onDone){state.busy=true;const path=findPath(u,x,y,u.actionState===ActionState.PURSUIT?1:calcStats(u).move);const steps=Math.max(1,path.length-1);anim={type:'move',u,path,t:0,dur:Math.min(520,120*steps),onDone};u.x=x;u.y=y}
+function playerMoveSelectedTo(x,y){if(!canMove(selected))return;const u=selected;moveUnitAnimated(u,x,y,()=>{u.actionState=ActionState.MOVED;refreshSelectionRanges();if(!hasAttackTarget(u)){finishUnitAction(u);showToast(`${u.name} 移動完成`);clearSelection()}state.busy=false;updateUI();draw();checkEnd();maybeAutoEndPlayerTurn()})}
+function playerPursuitMoveTo(x,y){if(!canPursuitMove(selected))return;const u=selected;moveUnitAnimated(u,x,y,()=>{finishUnitAction(u);showToast(`${u.name} 追擊結束`);state.busy=false;clearSelection();checkEnd();maybeAutoEndPlayerTurn()})}
+function tryPlayerAttack(att,target){if(!att||!target||att.team!=='P'||target.team!=='E'||!canAttack(att)||state.busy)return;if(!canAttackUnitFrom(att,att.x,att.y,target))return;doAttack(att,target,true)}
+
+function adjacent4(x,y){return [[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(c=>inBoard(c.x,c.y))}
+function isUltimateAttack(att,allowCounter){return allowCounter===true&&att.team==='P'&&isPlayersTurn()&&att.ultimateReady}
+function consumeUltimate(att){att.ultimateReady=false;att.ultimatePending=false;att.charge=0}
+function gainCharge(att){
+  if(att.team!=='P'||att.dead)return;
+  att.charge=Math.min(2,att.charge+1);
+  if(att.charge>=2&&!att.ultimateReady){
+    att.ultimatePending=true;
+    showToast(`${att.name} 集滿氣！下回合攻擊將自動施放大絕`);
+  }else{
+    showToast(`${att.name} 獲得 1 氣`);
+  }
+}
+function applyUltimateEffects(att,target){
+  if(!att||att.team!=='P')return;
+  if(att.job==='knight'){
+    let healed=0;
+    for(const c of adjacent4(target.x,target.y)){
+      const u=unitAt(c.x,c.y);
+      if(u&&u.team==='P'&&!u.dead){
+        const before=u.hp;
+        u.hp=Math.min(u.maxHp,u.hp+3);
+        const rec=u.hp-before;
+        if(rec>0){healed++;addHealNumber(u.x,u.y,rec)}
+      }
+    }
+    if(healed>0)showToast(`${att.name} 大絕：周圍我方恢復 HP`);
+  }
+  if(att.job==='mage'){
+    let hit=0;
+    for(const c of adjacent4(target.x,target.y)){
+      const u=unitAt(c.x,c.y);
+      if(u&&u.team==='E'&&!u.dead&&u!==target){
+        u.hp-=1;addDamageNumber(u.x,u.y,1);hit++;
+        if(u.hp<=0){u.hp=0;u.dead=true}
+      }
+    }
+    if(hit>0)showToast(`${att.name} 大絕：周圍敵軍受到波及`);
+  }
+}
+function doAttack(att,target,allowCounter){
+  state.busy=true;
+  const ultimate=isUltimateAttack(att,allowCounter);
+  const dmg=damage(att,target,ultimate);
+  if(ultimate)showToast(`${att.name} 發動大絕！`);
+  anim={type:'attack',att,target,dmg,t:0,dur:420,allowCounter,ultimate}
+}
+function finishAttack(att,target,dmg,allowCounter,ultimate=false){
+  target.hp-=dmg;
+  addDamageNumber(target.x,target.y,dmg);
+  showToast(`${att.name} 造成 ${dmg} 點傷害`);
+
+  if(ultimate)applyUltimateEffects(att,target);
+
+  const killed=target.hp<=0;
+  if(killed){target.dead=true;target.hp=0;showToast(`${target.name} 被擊倒！`)}
+
+  const isActiveAttack=allowCounter===true;
+
+  if(isActiveAttack&&att.team==='P'&&isPlayersTurn()){
+    if(ultimate)consumeUltimate(att);
+    if(killed)gainCharge(att);
+    if(enterPursuitIfAllowed(att,killed,isActiveAttack))return;
+    finishUnitAction(att)
+  }
+  if(isActiveAttack&&att.team==='E'){finishUnitAction(att)}
+
+  if(isActiveAttack&&!target.dead&&!att.dead&&canAttackUnitFrom(target,target.x,target.y,att)){
+    setTimeout(()=>doAttack(target,att,false),180);
+    return
+  }
+  state.busy=false;
+  clearSelection();
+  checkEnd();
+  if(state.phase==='enemy')setTimeout(enemyStep,350);else maybeAutoEndPlayerTurn()
+}
+function healUnit(u){const heal=Math.max(2,Math.ceil(u.maxHp*0.2)),before=u.hp;u.hp=Math.min(u.maxHp,u.hp+heal);return u.hp-before}
+function restSelected(){if(!canRest(selected))return;const u=selected,recovered=healUnit(u);finishUnitAction(u);showToast(`${u.name} 休息，恢復 ${recovered} 點 HP`);clearSelection();maybeAutoEndPlayerTurn()}
+function resetUnitsForTeam(team){state.units.forEach(u=>{if(u.team===team&&!u.dead){u.actionState=ActionState.READY;u.guardUsed=false;u.pursuitUsed=false}})}
+function allPlayersDone(){return state.units.filter(u=>!u.dead&&u.team==='P').every(u=>!playerCanStillAct(u))}
+function maybeAutoEndPlayerTurn(){if(isPlayersTurn()&&!state.busy&&allPlayersDone()){showToast('我方全員已行動，自動結束回合');setTimeout(()=>{if(isPlayersTurn()&&!state.busy&&allPlayersDone())endPlayerTurn(true)},450)}}
+function restIdlePlayersBeforeEndTurn(){let names=[];state.units.forEach(u=>{if(!u.dead&&u.team==='P'&&u.actionState===ActionState.READY){const r=healUnit(u);finishUnitAction(u);names.push(`${u.name}+${r}`)}});return names}
+function endPlayerTurn(auto=false){if(!isPlayersTurn()||state.busy)return;let rested=[];if(!auto){rested=restIdlePlayersBeforeEndTurn();if(rested.length)showToast(`未行動角色自動休息：${rested.join('、')}`)}state.phase='enemy';clearSelection();resetUnitsForTeam('E');state.units.forEach(u=>{if(u.team==='P')u.guardUsed=false});updateUI();draw();showTurnBanner('ENEMY TURN');if(auto)showToast('敵方回合');else setTimeout(()=>showToast('敵方回合'),rested.length?900:0);setTimeout(enemyStep,rested.length?950:500)}
+function startPlayerTurn(){state.phase='player';state.turn++;resetUnitsForTeam('P');state.units.forEach(u=>{if(u.team==='P'&&!u.dead&&u.ultimatePending){u.ultimatePending=false;u.ultimateReady=true;showToast(`${u.name} 大絕已準備！`)}if(u.team==='E')u.guardUsed=false});updateUI();draw();showToast('玩家回合');showTurnBanner('PLAYER TURN')}
+function terrainScore(u,x,y){const t=levelMap[y][x];let score=0;if(u.job==='archer'&&t==='F')score+=5;if(u.job==='knight'&&t==='W')score+=5;if(t==='R')score-=999;return score}
+function estimateDamage(att,defender){const a=calcStats(att),d=calcStats(defender);let effDef=d.def;if(att.job==='mage')effDef=Math.max(0,effDef-1);let dmg=Math.max(1,a.atk-effDef);if(defender.job==='knight'&&!defender.guardUsed)dmg=Math.max(1,dmg-1);return dmg}
+function livingPlayers(){return state.units.filter(u=>!u.dead&&u.team==='P')}
+function nearestPlayer(e){const ps=livingPlayers();if(!ps.length)return null;return ps.sort((a,b)=>dist(e.x,e.y,a.x,a.y)-dist(e.x,e.y,b.x,b.y)||a.hp-b.hp)[0]}
+function minDistToPlayers(x,y){const ps=livingPlayers();if(!ps.length)return 0;return Math.min(...ps.map(p=>dist(x,y,p.x,p.y)))}
+function canAttackFrom(e,x,y,target){return canAttackCellFrom(e,x,y,target.x,target.y)}
+function reachableAttackCells(e,target){const cells=[{x:e.x,y:e.y},...getMoveCells(e).filter(c=>!unitAt(c.x,c.y))];return cells.filter(c=>canAttackFrom(e,c.x,c.y,target))}
+function isVulnerableTarget(e,p){return p.hp/p.maxHp<0.2 || estimateDamage(e,p)>=p.hp}
+
+function targetPriorityScore(p){return AI_WEIGHTS.targetPriority[p.job]||0}
+function lowHpScore(p){
+  const ratio=p.hp/p.maxHp;
+  return Math.round(AI_WEIGHTS.lowHp*(1-ratio));
+}
+function scoreAttackCandidate(e,cell,target){
+  const dmg=estimateDamageAt(e,cell.x,cell.y,target);
+  let score=0;
+  if(dmg>=target.hp) score+=AI_WEIGHTS.kill;
+  if(target.hp/target.maxHp<0.2) score+=AI_WEIGHTS.vulnerable;
+  score+=lowHpScore(target);
+  score+=dmg*AI_WEIGHTS.damage;
+  score+=terrainScore(e,cell.x,cell.y)*AI_WEIGHTS.terrain;
+  score+=targetPriorityScore(target);
+  // 移動較少的方案稍微優先，避免同分時亂繞。
+  score-=dist(e.x,e.y,cell.x,cell.y);
+  return {score,dmg,cell,target};
+}
+function estimateDamageAt(att,x,y,defender){
+  const oldX=att.x,oldY=att.y;
+  att.x=x;att.y=y;
+  const dmg=estimateDamage(att,defender);
+  att.x=oldX;att.y=oldY;
+  return dmg;
+}
+function attackCandidateCells(e){
+  // 原地 + 所有可停留移動格。
+  return [{x:e.x,y:e.y},...getMoveCells(e).filter(c=>!unitAt(c.x,c.y))];
+}
+function findBestAttackCandidate(e){
+  const players=livingPlayers();
+  if(!players.length)return null;
+  const candidates=[];
+  for(const cell of attackCandidateCells(e)){
+    for(const p of players){
+      if(!p.dead && canAttackUnitFrom(e,cell.x,cell.y,p)){
+        candidates.push(scoreAttackCandidate(e,cell,p));
+      }
+    }
+  }
+  if(!candidates.length)return null;
+  candidates.sort((a,b)=>b.score-a.score||b.dmg-a.dmg||a.target.hp-b.target.hp||dist(e.x,e.y,a.cell.x,a.cell.y)-dist(e.x,e.y,b.cell.x,b.cell.y));
+  return candidates[0];
+}
+function chooseChaseTarget(e){
+  const ps=livingPlayers();
+  if(!ps.length)return null;
+  return ps.slice().sort((a,b)=>{
+    const da=dist(e.x,e.y,a.x,a.y), db=dist(e.x,e.y,b.x,b.y);
+    const pa=targetPriorityScore(a), pb=targetPriorityScore(b);
+    return da-db || pb-pa || a.hp-b.hp;
+  })[0];
+}
+function bestChaseCell(e,target){
+  const cells=getMoveCells(e).filter(c=>!unitAt(c.x,c.y));
+  if(!cells.length)return null;
+  cells.sort((a,b)=>{
+    const scoreA=-dist(a.x,a.y,target.x,target.y)*AI_WEIGHTS.chaseDistance + terrainScore(e,a.x,a.y)*AI_WEIGHTS.terrain;
+    const scoreB=-dist(b.x,b.y,target.x,target.y)*AI_WEIGHTS.chaseDistance + terrainScore(e,b.x,b.y)*AI_WEIGHTS.terrain;
+    return scoreB-scoreA;
+  });
+  return cells[0];
+}
+function enemyFlee(e){const cells=getMoveCells(e).filter(c=>!unitAt(c.x,c.y));if(!cells.length){enemyRest(e);return}cells.sort((a,b)=>(minDistToPlayers(b.x,b.y)+terrainScore(e,b.x,b.y)*0.3)-(minDistToPlayers(a.x,a.y)+terrainScore(e,a.x,a.y)*0.3));const best=cells[0];moveUnitAnimated(e,best.x,best.y,()=>{finishUnitAction(e);state.busy=false;updateUI();draw();showToast(`${e.name} 血量過低，選擇撤退`);setTimeout(enemyStep,280)})}
+function enemyIsSafeToRest(e){return livingPlayers().every(p=>dist(e.x,e.y,p.x,p.y)>calcStats(p).range&&dist(e.x,e.y,p.x,p.y)>calcStats(e).range)}
+function enemyRest(e){const recovered=healUnit(e);finishUnitAction(e);showToast(`${e.name} 休息，恢復 ${recovered} 點 HP`);updateUI();draw();setTimeout(enemyStep,350)}
+
+function enemyStep(){
+  if(state.phase!=='enemy'||state.busy)return;
+  const enemies=state.units.filter(u=>!u.dead&&u.team==='E'&&u.actionState!==ActionState.DONE);
+  if(!enemies.length){startPlayerTurn();return}
+  const e=enemies[0];
+  if(!livingPlayers().length){checkEnd();return}
+
+  // 低血量：先逃跑；若安全則休息。
+  if(e.hp/e.maxHp<0.2){
+    if(enemyIsSafeToRest(e)){enemyRest(e)}else{enemyFlee(e)}
+    return;
+  }
+
+  // 攻擊意圖：評估所有「可移動位置 + 可攻擊目標」候選。
+  const bestAttack=findBestAttackCandidate(e);
+  if(bestAttack){
+    const {cell,target}=bestAttack;
+    if(!(cell.x===e.x&&cell.y===e.y)){
+      moveUnitAnimated(e,cell.x,cell.y,()=>{
+        e.actionState=ActionState.MOVED;
+        state.busy=false;
+        updateUI();draw();
+        if(!e.dead&&!target.dead&&canAttackUnitFrom(e,e.x,e.y,target))doAttack(e,target,true);
+        else{finishUnitAction(e);setTimeout(enemyStep,280)}
+      });
+      return;
+    }
+    doAttack(e,target,true);
+    return;
+  }
+
+  // Chase：沒有任何攻擊候選時，接近最合適目標，並保留地形偏好。
+  const target=chooseChaseTarget(e);
+  if(!target){checkEnd();return}
+  const step=bestChaseCell(e,target);
+  if(step){
+    moveUnitAnimated(e,step.x,step.y,()=>{
+      finishUnitAction(e);
+      state.busy=false;
+      updateUI();draw();
+      setTimeout(enemyStep,280);
+    });
+  }else{
+    finishUnitAction(e);
+    setTimeout(enemyStep,200);
+  }
+}
+function checkEnd(){const p=state.units.filter(u=>!u.dead&&u.team==='P'),e=state.units.filter(u=>!u.dead&&u.team==='E');if(!e.length)return showResult(true);if(!p.length)return showResult(false)}
+function buildBattleReport(win){
+  const players=state.units.filter(u=>u.team==='P'),enemies=state.units.filter(u=>u.team==='E');
+  const alivePlayers=players.filter(u=>!u.dead).length,totalPlayers=players.length;
+  const defeatedEnemies=enemies.filter(u=>u.dead).length,totalEnemies=enemies.length;
+  const remainingEnemies=totalEnemies-defeatedEnemies;
+  let stars,title,comment;
+  if(!win){stars='★☆☆☆☆';title='作戰失敗';comment='部隊失去戰鬥能力，請重新整備後再次挑戰。'}
+  else if(alivePlayers===totalPlayers&&state.turn<=6){stars='★★★★★';title='完美勝利';comment='所有隊員平安歸來，這是一場近乎無懈可擊的作戰。'}
+  else if(alivePlayers===totalPlayers){stars='★★★★☆';title='戰術勝利';comment='任務順利完成，部隊展現了良好的協同作戰能力。'}
+  else if(alivePlayers>=2){stars='★★★☆☆';title='艱苦勝利';comment='雖然完成任務，但部隊付出了不小的代價。'}
+  else{stars='★★☆☆☆';title='慘勝';comment='勝利來之不易，建議重新檢視戰術部署。'}
+  const headline=win?(stars==='★★★★★'?'完美勝利！':'戰鬥勝利！'):'作戰失敗…';
+  const text=win?'你成功突破敵軍防線。':'我方全員倒下了，但同一張地圖仍可再次挑戰。';
+  const stats=[['回合數',state.turn],['我方存活',`${alivePlayers} / ${totalPlayers}`],['擊倒敵軍',`${defeatedEnemies} / ${totalEnemies}`],['敵軍殘存',remainingEnemies]];
+  return {headline,rank:`${stars} ${title}`,text,comment,stats};
+}
+function showResult(win){
+  state.busy=true;
+  const report=buildBattleReport(win);
+  UI.resultTitle.textContent=report.headline;
+  UI.resultRank.textContent=report.rank;
+  UI.resultText.textContent=report.text;
+  UI.resultComment.textContent=report.comment;
+  UI.resultStats.innerHTML=report.stats.map(([label,value])=>`<div class="resultStat"><b>${value}</b><span>${label}</span></div>`).join('');
+  UI.overlay.classList.remove('victory','defeat');
+  UI.overlay.classList.add('show',win?'victory':'defeat');
+}
+function cellFromEvent(ev){const rect=canvas.getBoundingClientRect();const cx=(ev.clientX-rect.left)/rect.width*canvas.width,cy=(ev.clientY-rect.top)/rect.height*canvas.height;return {x:Math.floor(cx/T),y:Math.floor(cy/T)}}
+canvas.addEventListener('pointerdown',ev=>{if(state.busy||!isPlayersTurn())return;const {x,y}=cellFromEvent(ev);if(!inBoard(x,y))return;const u=unitAt(x,y);if(selected&&selected.actionState===ActionState.PURSUIT){if(moveCells.some(c=>c.x===x&&c.y===y))playerPursuitMoveTo(x,y);return}if(selected&&u&&u.team==='E'&&attackCells.some(c=>c.x===x&&c.y===y)){tryPlayerAttack(selected,u);return}if(selected&&moveCells.some(c=>c.x===x&&c.y===y)){playerMoveSelectedTo(x,y);return}if(u)selectUnit(u);else inspectTerrain(x,y)});
+UI.waitBtn.onclick=restSelected;UI.cancelBtn.onclick=()=>{if(selected&&selected.actionState===ActionState.PURSUIT){finishUnitAction(selected);showToast(`${selected.name} 放棄追擊`);clearSelection();maybeAutoEndPlayerTurn();return}clearSelection()};UI.endTurnBtn.onclick=()=>endPlayerTurn(false);UI.restartBtn.onclick=()=>newGame(false);UI.retrySameMapBtn.onclick=()=>newGame(true);UI.newBattleBtn.onclick=()=>newGame(false);if(UI.difficultySelect){UI.difficultySelect.onchange=()=>showToast(`已選擇難度：${currentDifficulty().label}，重新開始後套用`);}
+function actionLabel(u){return {READY:'可行動',MOVED:'已移動，可攻擊',PURSUIT:'追擊中，只能移動 1 格',DONE:'已行動'}[u.actionState]||u.actionState}
+function updateUI(){UI.turnNo.textContent=state.turn;UI.phaseText.textContent=state.phase==='player'?'玩家回合':'敵方回合';UI.endTurnBtn.disabled=state.phase!=='player'||state.busy;const u=selected;if(!u){if(selectedTerrain){UI.sheet.classList.remove('compact');const ter=TERRAIN[selectedTerrain.type];const note=selectedTerrain.type==='G'?'無特殊效果':selectedTerrain.type==='F'?'弓箭手站在森林時 ATK +1':selectedTerrain.type==='W'?'騎士站在河流時 DEF +1':'岩石是障礙物，不能通行或停留，並阻擋遠程直線視線';UI.unitName.textContent=`${ter.name} (${selectedTerrain.x}, ${selectedTerrain.y})`;UI.unitSub.textContent=note;UI.terrainInfo.textContent=ter.pass?'可通行':'不可通行';UI.hpFill.style.width='0%';UI.stats.innerHTML=[`地形：${ter.name}`,ter.pass?'可站立':'不可站立',note].map(x=>`<span class="chip">${x}</span>`).join('');UI.waitBtn.disabled=true;UI.cancelBtn.disabled=false;return}UI.sheet.classList.add('compact');UI.unitName.textContent=state.phase==='player'?'選擇一名角色開始':'敵方行動中';UI.unitSub.textContent='點擊角色 → 點藍格移動 → 點紅格攻擊';UI.terrainInfo.textContent='四職業 / 四地形 / 100%命中';UI.hpFill.style.width='100%';UI.stats.innerHTML='';UI.waitBtn.disabled=true;UI.cancelBtn.disabled=true;return}UI.sheet.classList.remove('compact');const s=calcStats(u),j=JOBS[u.job],t=terrainAt(u.x,u.y);UI.unitName.textContent=`${j.icon} ${u.name}`;UI.unitSub.textContent=`${u.team==='P'?'我方':'敵方'} · ${j.name} · ${actionLabel(u)}`;UI.terrainInfo.textContent=`站立：${t.name}`;UI.hpFill.style.width=(u.hp/u.maxHp*100)+'%';UI.stats.innerHTML=[`HP ${u.hp}/${u.maxHp}`,`攻 ${s.atk}`,`防 ${s.def}`,`移 ${s.move}`,`射程 ${s.range}`,u.team==='P'?`氣 ${'●'.repeat(u.charge)}${'○'.repeat(2-u.charge)}${u.ultimateReady?' · 大絕已準備':(u.ultimatePending?' · 下回合大絕':'')}`:null,j.trait].filter(Boolean).map(x=>`<span class="chip">${x}</span>`).join('');UI.waitBtn.disabled=!canRest(u);UI.cancelBtn.disabled=false}
+
+function addDamageNumber(x,y,dmg){fx.damageTexts.push({x,y,text:'-'+dmg,t:0,dur:700,color:'#fff2a8'})}
+function addHealNumber(x,y,heal){fx.damageTexts.push({x,y,text:'+'+heal,t:0,dur:700,color:'#98f5a5'})}
+function showTurnBanner(text){fx.turnBanner={text,t:0,dur:900}}
+function drawFloatingText(){for(const f of fx.damageTexts){const p=Math.min(1,f.t/f.dur);ctx.save();ctx.globalAlpha=1-p;ctx.fillStyle=f.color||'#fff2a8';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=4;ctx.font='bold 28px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';const sx=f.x*T+T/2,sy=f.y*T+22-p*34;ctx.strokeText(f.text,sx,sy);ctx.fillText(f.text,sx,sy);ctx.restore()}}
+function drawTurnBanner(){if(!fx.turnBanner)return;const b=fx.turnBanner,p=Math.min(1,b.t/b.dur);const alpha=p<0.2?p/0.2:(p>0.75?(1-p)/0.25:1);ctx.save();ctx.globalAlpha=Math.max(0,alpha);ctx.fillStyle='rgba(5,8,18,.62)';roundRect(canvas.width/2-180,canvas.height/2-42,360,84,20,true);ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=2;roundRect(canvas.width/2-180,canvas.height/2-42,360,84,20,false);ctx.fillStyle='#ffffff';ctx.font='bold 36px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(b.text,canvas.width/2,canvas.height/2);ctx.restore()}
+function updateFx(){fx.damageTexts.forEach(f=>f.t+=16);fx.damageTexts=fx.damageTexts.filter(f=>f.t<f.dur);if(fx.turnBanner){fx.turnBanner.t+=16;if(fx.turnBanner.t>=fx.turnBanner.dur)fx.turnBanner=null}}
+
+function showToast(msg){UI.toast.textContent=msg;UI.toast.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>UI.toast.classList.remove('show'),1500)}
+function draw(){ctx.clearRect(0,0,canvas.width,canvas.height);for(let y=0;y<H;y++)for(let x=0;x<W;x++)drawTile(x,y,levelMap[y][x]);drawHighlights();state.units.filter(u=>!u.dead).forEach(drawUnit);drawGrid();drawFloatingText();drawTurnBanner()}
+function drawTile(x,y,t){const px=x*T,py=y*T,ter=TERRAIN[t];ctx.fillStyle=ter.color;ctx.fillRect(px,py,T,T);if(t==='F'){ctx.fillStyle='rgba(16,76,43,.55)';for(let i=0;i<3;i++){ctx.beginPath();ctx.arc(px+24+i*18,py+34+(i%2)*12,20,0,Math.PI*2);ctx.fill()}ctx.fillStyle='rgba(10,45,28,.35)';ctx.fillRect(px+18,py+48,9,18);ctx.fillRect(px+47,py+50,8,16)}if(t==='W'){ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=3;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(px+5,py+18+i*18);ctx.quadraticCurveTo(px+26,py+8+i*18,px+48,py+18+i*18);ctx.quadraticCurveTo(px+62,py+26+i*18,px+75,py+18+i*18);ctx.stroke()}}if(t==='R'){ctx.fillStyle='#68665f';ctx.beginPath();ctx.moveTo(px+18,py+60);ctx.lineTo(px+35,py+22);ctx.lineTo(px+60,py+34);ctx.lineTo(px+68,py+62);ctx.closePath();ctx.fill();ctx.strokeStyle='rgba(255,255,255,.18)';ctx.stroke()}}
+function drawHighlights(){for(const c of moveCells){ctx.fillStyle='rgba(82,162,255,.38)';roundRect(c.x*T+8,c.y*T+8,T-16,T-16,12,true)}for(const c of attackCells){const u=unitAt(c.x,c.y);if(u&&selected&&u.team!==selected.team){ctx.fillStyle='rgba(255,82,82,.46)';roundRect(c.x*T+8,c.y*T+8,T-16,T-16,12,true)}}if(selected){ctx.strokeStyle='#ffe07a';ctx.lineWidth=4;roundRect(selected.x*T+6,selected.y*T+6,T-12,T-12,14,false)}}
+function canStillMoveVisual(u){if(u.dead)return false;if(u.team==='P')return state.phase==='player'&&playerCanStillAct(u);if(u.team==='E')return state.phase==='enemy'&&u.actionState!==ActionState.DONE;return false}
+function drawUnit(u){const j=JOBS[u.job],x=u.x*T,y=u.y*T,active=canStillMoveVisual(u);let ox=0,oy=active?Math.sin(Date.now()/260+u.id)*2:0;if(anim&&anim.type==='move'&&anim.u===u){const path=anim.path||[{x:u.x,y:u.y}],steps=Math.max(1,path.length-1),p=Math.min(1,anim.t/anim.dur),seg=Math.min(steps-1,Math.floor(p*steps)),local=p*steps-seg,a=path[seg],b=path[seg+1]||a,cx=a.x+(b.x-a.x)*local,cy=a.y+(b.y-a.y)*local;ox=(cx-u.x)*T;oy=(cy-u.y)*T}if(anim&&anim.type==='attack'&&anim.att===u){const p=Math.sin(Math.min(1,anim.t/anim.dur)*Math.PI);ox=(anim.target.x-u.x)*10*p;oy=(anim.target.y-u.y)*10*p}if(anim&&anim.type==='attack'&&anim.target===u&&anim.t>180&&anim.t<310){ox+=(Math.random()-.5)*8;oy+=(Math.random()-.5)*8}ctx.save();ctx.translate(x+T/2+ox,y+T/2+oy);ctx.fillStyle=u.team==='P'?'#4e8df5':'#a83f3f';ctx.beginPath();ctx.arc(0,2,24,0,Math.PI*2);ctx.fill();ctx.strokeStyle=u.actionState===ActionState.DONE?'rgba(255,255,255,.25)':'rgba(255,255,255,.85)';ctx.lineWidth=3;ctx.stroke();ctx.font='30px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(j.icon,0,0);ctx.restore();const bw=48,bh=6,hp=u.hp/u.maxHp,hx=x+16+ox,hy=y+68+oy;ctx.fillStyle='rgba(0,0,0,.45)';roundRect(hx,hy,bw,bh,4,true);ctx.fillStyle=hp>.45?'#57df75':hp>.2?'#ffd15c':'#ff6262';roundRect(hx,hy,bw*hp,bh,4,true)}
+function drawGrid(){ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;for(let x=0;x<=W;x++){ctx.beginPath();ctx.moveTo(x*T,0);ctx.lineTo(x*T,H*T);ctx.stroke()}for(let y=0;y<=H;y++){ctx.beginPath();ctx.moveTo(0,y*T);ctx.lineTo(W*T,y*T);ctx.stroke()}}
+function roundRect(x,y,w,h,r,fill){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();if(fill)ctx.fill();else ctx.stroke()}
+function loop(){updateFx();if(anim){anim.t+=16;if(anim.t>=anim.dur){const a=anim;anim=null;if(a.type==='attack')finishAttack(a.att,a.target,a.dmg,a.allowCounter,a.ultimate);if(a.type==='move'&&typeof a.onDone==='function')a.onDone()}draw()}else draw();requestAnimationFrame(loop)}
+newGame();renderGuidePanel();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
