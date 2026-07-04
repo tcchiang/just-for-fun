@@ -11,5 +11,6 @@ just for fun
 | [GunBound](https://tcchiang.github.io/just-for-fun/GunBound.html) | GunBound 坦克對戰|
 | [MineSweeper](https://tcchiang.github.io/just-for-fun/MineSweeper.html) | MineSweeper 踩地雷|
 | [RopeShooter](https://tcchiang.github.io/just-for-fun/RopeShooter.html) | 瘋狂射繩 |
+| [RSLG](https://tcchiang.github.io/just-for-fun/RSLG.html) | 策略戰棋 |
 | [Tetris](https://tcchiang.github.io/just-for-fun/Tetris.html) | Tetris 俄羅斯方塊|
 
