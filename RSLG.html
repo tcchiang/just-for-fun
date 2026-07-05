@@ -44,7 +44,7 @@
 </head>
 <body>
 <div id="app"><header><div><div class="title">Project SRPG v1</div><div class="status">第 <strong id="turnNo">1</strong> 回合 · <strong id="phaseText">玩家回合</strong></div></div><button id="endTurnBtn" class="primary">結束回合</button></header>
-<main id="mapWrap"><div id="boardArea"><canvas id="game" width="960" height="800"></canvas><div id="toast"></div></div><aside id="guidePanel" aria-label="職業與規則說明"><section class="guideSection"><h2 class="guideTitle">戰場圖例</h2><div id="legend"><span class="legendItem">🟦 可移動</span><span class="legendItem">🟥 可攻擊</span><span class="legendItem">🌲 弓手+攻</span><span class="legendItem">🌊 騎士+防</span><span class="legendItem">🪨 不可通行 / 擋視線</span></div></section><section class="guideSection"><h2 class="guideTitle">職業屬性</h2><table class="guideTable"><thead><tr><th>職業</th><th>HP</th><th>ATK</th><th>DEF</th><th>Move</th><th>Range</th></tr></thead><tbody id="jobTableBody"></tbody></table></section><section class="guideSection"><h2 class="guideTitle">條件修正</h2><table class="guideTable"><thead><tr><th>條件</th><th>效果</th></tr></thead><tbody id="bonusTableBody"></tbody></table></section><section class="guideSection" style="margin-top:auto"><h2 class="guideTitle">系統</h2><div class="systemControls"><label for="difficultySelect">難度</label><select id="difficultySelect" aria-label="難度"><option value="easy" selected>易：4 敵人</option><option value="normal">中：5 敵人</option><option value="hard">難：6 敵人</option></select><button id="restartBtn">重新開始</button></div></section></aside></main>
+<main id="mapWrap"><div id="boardArea"><canvas id="game" width="960" height="800"></canvas><div id="toast"></div></div><aside id="guidePanel" aria-label="職業與規則說明"><section class="guideSection"><h2 class="guideTitle">戰場圖例</h2><div id="legend"><span class="legendItem">🟦 可移動</span><span class="legendItem">🟥 可攻擊</span><span class="legendItem">🌲 弓手+攻</span><span class="legendItem">🌊 騎士+防</span><span class="legendItem">🪨 不可通行 / 擋視線</span></div></section><section class="guideSection"><h2 class="guideTitle">職業屬性</h2><table class="guideTable"><thead><tr><th>職業</th><th>HP</th><th>ATK</th><th>DEF</th><th>Move</th><th>Range</th></tr></thead><tbody id="jobTableBody"></tbody></table></section><section class="guideSection"><h2 class="guideTitle">條件修正</h2><table class="guideTable"><thead><tr><th>條件</th><th>效果</th></tr></thead><tbody id="bonusTableBody"></tbody></table></section><section class="guideSection" style="margin-top:auto"><h2 class="guideTitle">系統</h2><div class="systemControls"><label for="difficultySelect">難度</label><select id="difficultySelect" aria-label="難度"><option value="easy" selected>易：4 敵人</option><option value="normal">中：5 敵人</option><option value="hard">難：7 敵人</option></select><button id="restartBtn">重新開始</button></div></section></aside></main>
 <section id="sheet" class="compact"><div class="sheetTop"><div><div class="unitName" id="unitName">選擇一名角色開始</div><div class="unitSub" id="unitSub">點擊角色 → 點藍格移動 → 點紅格攻擊</div></div><div class="chip" id="terrainInfo">草地 / 森林 / 河流 / 岩石</div></div><div class="hpbar"><div class="hpfill" id="hpFill"></div></div><div class="stats" id="stats"></div><div class="actions"><button id="waitBtn">休息</button><button id="cancelBtn">取消選取</button></div></section></div>
 <div id="overlay"><div class="modal battleReport"><div class="resultKicker">戰後報告</div><h1 id="resultTitle">勝利！</h1><div id="resultRank" class="resultRank">★★★★★ 完美勝利</div><div id="resultStats" class="resultStats"></div><p id="resultText">你擊敗了所有敵人。</p><p id="resultComment" class="resultComment">所有隊員平安歸來。</p><div class="resultActions"><button id="retrySameMapBtn" class="primary">再次挑戰同一關</button><button id="newBattleBtn">開始新的戰場</button></div></div></div>
 <script>
@@ -60,7 +60,7 @@ let state,selected=null,selectedTerrain=null,moveCells=[],attackCells=[],anim=nu
 const DIFFICULTIES={
   easy:{label:'易',enemyCount:4},
   normal:{label:'中',enemyCount:5},
-  hard:{label:'難',enemyCount:6}
+  hard:{label:'難',enemyCount:7}
 };
 const AI_WEIGHTS={
   kill:500,
@@ -78,7 +78,8 @@ const ENEMY_PRESETS=[
   ['knight',9,3,'敵騎士'],
   ['archer',8,2,'敵弓手'],
   ['mage',10,4,'敵法師'],
-  ['archer',7,1,'敵弓手B']
+  ['archer',7,1,'敵弓手B'],
+  ['knight',8,3,'敵隊長']
 ];
 function currentDifficulty(){
   const key=UI.difficultySelect?UI.difficultySelect.value:'easy';
@@ -152,6 +153,7 @@ function newGame(keepMap=false){
   let id=1;
   const players=[
     makeUnit(id++,'P','warrior',1,8,'亞倫'),
+    makeUnit(id++,'P','warrior',3,8,'凱爾'),
     makeUnit(id++,'P','knight',2,8,'布萊恩'),
     makeUnit(id++,'P','archer',1,7,'琳娜'),
     makeUnit(id++,'P','mage',2,7,'米菈')
@@ -313,6 +315,8 @@ function finishAttack(att,target,dmg,allowCounter,ultimate=false){
     if(killed)gainCharge(att);
     if(enterPursuitIfAllowed(att,killed,isActiveAttack))return;
     finishUnitAction(att)
+  }else if(!isActiveAttack&&att.team==='P'&&target.team==='E'&&killed){
+    gainCharge(att);
   }
   if(isActiveAttack&&att.team==='E'){finishUnitAction(att)}
 
