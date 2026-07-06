@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>兔兔開心早午餐</title>
+<style>
+  :root{
+    --bg:#fff7e8; --panel:#fffdf7; --pink:#ff9fbc; --pink2:#ffd7e3; --mint:#aee8d7;
+    --yellow:#ffe28a; --brown:#8b5a3c; --blue:#a7d8ff; --green:#b9e88b; --red:#ff8b8b;
+    --shadow: 0 8px 18px rgba(120,80,40,.18);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  body{margin:0;font-family:"Microsoft JhengHei", system-ui, sans-serif;background:linear-gradient(#fff4dc,#ffeef6);color:#6d4328;overflow:hidden;display:flex;justify-content:center;align-items:center;min-height:100vh;}
+  #game{width:40vw;min-width:520px;max-width:760px;height:100vh;display:flex;flex-direction:column;position:relative;background:#fff7e8;box-shadow:0 0 0 6px rgba(255,255,255,.65),0 12px 36px rgba(120,80,40,.22);overflow:hidden;}
+  .topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:#fffaf0;border-bottom:4px solid #ffe1b5;box-shadow:0 2px 8px rgba(0,0,0,.06);z-index:5;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:22px;color:#8b4a2c;}
+  .bunnyLogo{width:42px;height:42px;border-radius:50%;background:#fff;border:3px solid #ffadc5;position:relative;box-shadow:var(--shadow);}
+  .bunnyLogo:before,.bunnyLogo:after{content:"";position:absolute;width:13px;height:28px;background:#fff;border:3px solid #ffadc5;border-radius:14px;top:-22px;}
+  .bunnyLogo:before{left:7px;transform:rotate(-12deg)} .bunnyLogo:after{right:7px;transform:rotate(12deg)}
+  .hud{display:flex;gap:10px;align-items:center;font-weight:800;font-size:17px;}
+  .pill{background:#fff;border:3px solid #ffd39b;border-radius:22px;padding:6px 12px;box-shadow:0 3px 0 #f0bc7d;white-space:nowrap;}
+  .incomePill{font-size:23px;padding:7px 14px;border-color:#ffc05c;box-shadow:0 4px 0 #d89b44;background:#fffdf2;}
+  .incomePill #score{font-size:30px;color:#2d9a57;font-weight:1000;}
+  .main{flex:1;display:grid;grid-template-rows:34% 28% 38%;min-height:0;}
+  .customers{position:relative;background:linear-gradient(#bde9ff 0 55%,#d9f7cf 56% 100%);border-bottom:4px solid #b6e0a3;overflow:hidden;}
+  .sun{position:absolute;right:40px;top:24px;width:58px;height:58px;background:#ffe56f;border-radius:50%;box-shadow:0 0 0 10px rgba(255,229,111,.25);} 
+  .cloud{position:absolute;left:70px;top:25px;width:90px;height:32px;background:white;border-radius:30px;opacity:.9;}
+  .cloud:before,.cloud:after{content:"";position:absolute;background:white;border-radius:50%;}.cloud:before{width:42px;height:42px;left:12px;top:-20px}.cloud:after{width:35px;height:35px;left:45px;top:-14px}
+  #customerRow{position:absolute;left:2%;right:2%;bottom:8px;display:flex;justify-content:center;gap:12px;align-items:flex-end;}
+  .customer{width:18%;max-width:130px;min-width:80px;position:relative;text-align:center;transition:.2s;}
+  .orderBubble{position:absolute;left:50%;top:-68px;transform:translateX(-50%);background:white;border:3px solid #ffcf87;border-radius:16px;padding:6px;min-width:78px;min-height:48px;box-shadow:var(--shadow);font-size:26px;display:flex;align-items:center;justify-content:center;gap:3px;}
+  .orderBubble:after{content:"";position:absolute;bottom:-10px;left:40%;border-width:10px 8px 0 8px;border-style:solid;border-color:#ffcf87 transparent transparent transparent;}
+  .patience{height:10px;background:#fff4e8;border-radius:10px;border:2px solid white;overflow:hidden;margin:3px auto 3px;width:78%;box-shadow:0 2px 0 rgba(120,80,40,.10);}
+  .patience span{display:block;height:100%;width:100%;transition:width .2s;background:#79d772;}
+  .patience.green span{background:#79d772;}
+  .patience.yellow span{background:#ffd85c;}
+  .patience.red span{background:#ff7777;}
+  .animal{touch-action:manipulation;font-size:58px;filter:drop-shadow(0 5px 0 rgba(0,0,0,.08));cursor:pointer;line-height:1;}
+  .animal:hover{transform:translateY(-2px)}
+  .custName{background:#fff;border:2px solid #ffd3a2;border-radius:12px;font-size:13px;font-weight:800;padding:1px 4px;display:inline-block;}
+  .truck{position:relative;background:#fff4db;display:flex;align-items:center;justify-content:center;gap:16px;border-bottom:4px solid #ffd39b;overflow:hidden;}
+  .bunnyChef{width:105px;text-align:center;font-size:58px;animation:bob 2s infinite ease-in-out;}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  .speech{position:absolute;left:18px;top:10px;background:white;border:3px solid #ffd39b;border-radius:18px;padding:8px 12px;font-weight:900;color:#8b4a2c;box-shadow:var(--shadow);max-width:280px;}
+  .plates{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;max-width:70%;}
+  .plate{touch-action:manipulation;width:72px;height:72px;border-radius:18px;background:#fff;border:3px solid #d7c9ff;box-shadow:0 4px 0 #b8a8ee;display:flex;align-items:center;justify-content:center;font-size:34px;cursor:pointer;position:relative;}
+  .plate.selected{outline:5px solid #ff8db3;transform:scale(1.06)}
+  .plate .small{position:absolute;right:4px;bottom:2px;font-size:14px;background:#ffefb0;border-radius:8px;padding:0 4px;font-weight:bold;}
+  .workshop{background:linear-gradient(#fffdf7,#fff1dc);padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:auto;}
+  .section{background:rgba(255,255,255,.85);border:3px solid #ffd9ad;border-radius:22px;padding:8px;box-shadow:var(--shadow);min-height:0;}
+  .sectionTitle{font-weight:900;font-size:16px;margin-bottom:6px;color:#8b4a2c;}
+  .buttons{display:flex;gap:8px;flex-wrap:wrap;}
+  button{touch-action:manipulation;font-family:inherit;border:0;border-radius:18px;background:#fff;box-shadow:0 4px 0 #d7b380;border:3px solid #ffcd87;color:#75472c;font-weight:900;font-size:16px;padding:8px 10px;cursor:pointer;min-height:46px;}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #d7b380;}
+  .soundBtn{min-height:38px;width:44px;padding:4px;border-radius:16px;background:#fff8cc;border-color:#ffe28a;box-shadow:0 4px 0 #e6c85a;font-size:20px;}
+  button.locked{filter:grayscale(1);opacity:.45;pointer-events:none;}
+  .machine{display:flex;align-items:center;justify-content:space-between;gap:6px;background:#fff7ef;border:2px dashed #ffc98d;border-radius:16px;padding:6px;margin-bottom:6px;}
+  .machineName{font-weight:900;min-width:76px;}
+  .progress{flex:1;height:16px;border-radius:12px;background:#eadbc8;overflow:hidden;border:2px solid white;}
+  .progress span{display:block;height:100%;width:0;background:#ffd85c;transition:width .1s linear;}
+  .machine.idle .progress span{background:#eadbc8;width:0!important;}
+  .machine.cook .progress span{background:#ffd85c;}
+  .machine.ready .progress span{background:#79d772;width:100%!important;}
+  .machine.burn .progress span{background:#94624b;width:100%!important;}
+  .takeBtn{min-width:58px;padding:5px 8px;font-size:14px;min-height:34px;background:#fff;}
+  .takeBtn.idle{background:#fff;border-color:#ffcd87;box-shadow:0 4px 0 #d7b380;color:#75472c;}
+  .takeBtn.cook{background:#fff0a6;border-color:#ffd85c;box-shadow:0 4px 0 #d8b54a;color:#7a5b00;}
+  .takeBtn.ready{background:#c8f5bd;border-color:#79d772;box-shadow:0 4px 0 #55ad4f;color:#2c6b2e;}
+  .takeBtn.burn{background:#a97855;border-color:#94624b;box-shadow:0 4px 0 #6e4836;color:#fffdf7;}
+  .bigBtn.disabled{filter:grayscale(1);opacity:.45;pointer-events:none;background:#ddd;border-color:#bbb;box-shadow:0 5px 0 #aaa;color:#777;}
+  .statsWrap{margin:12px auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:210px;overflow:auto;text-align:left;}
+  .statCard{background:#fff7e8;border:3px solid #ffd9ad;border-radius:16px;padding:8px;font-weight:900;display:grid;grid-template-columns:auto 1fr;gap:4px 8px;align-items:center;}
+  .statIcon .foodSvg{width:40px;height:40px;}
+  .statName{color:#8b4a2c;font-size:14px;}
+  .statNums{grid-column:1 / span 2;display:flex;justify-content:space-between;gap:5px;font-size:13px;}
+  .soldNum{color:#2d9a57}.failNum{color:#e05252}.burnNum{color:#7a4b2d}
+  .toast{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);background:#fff;border:4px solid #ffb4cc;border-radius:26px;padding:18px 26px;font-size:28px;font-weight:900;color:#ff6597;box-shadow:var(--shadow);z-index:30;animation:pop .8s ease forwards;pointer-events:none;text-align:center;}
+  @keyframes pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-65%) scale(1)}}
+  .modal{position:absolute;inset:0;background:rgba(90,60,35,.35);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+  .card{background:#fffdf7;border:5px solid #ffbdd1;border-radius:30px;box-shadow:var(--shadow);padding:24px;max-width:620px;width:min(95vw,620px);text-align:center;}
+  .card h1{margin:0 0 10px;color:#ff6c9b;font-size:34px}.card p{font-size:18px;line-height:1.6;font-weight:700}.stars{font-size:42px;letter-spacing:8px;margin:14px}.bigBtn{background:#ffbdd1;border-color:#ff8db3;box-shadow:0 5px 0 #d9789a;font-size:22px;padding:12px 22px;margin:6px;}
+  .levelGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0}.levelBtn{padding:10px 6px;font-size:15px;}
+  .hint{font-size:14px;color:#9a7154}.recipe{font-size:14px;text-align:left;background:#fff3dd;border-radius:18px;padding:10px;margin:10px auto;max-width:440px;}
+
+  .foodSvg{width:46px;height:46px;display:inline-block;vertical-align:middle;}
+  .orderBubble .foodSvg{width:44px;height:44px;}
+  .orderBubble.combo{min-width:104px;max-width:150px;flex-wrap:wrap;gap:1px;line-height:1;}
+  .orderBubble.combo .foodSvg{width:38px;height:38px;}
+  .customer .patience{order:3;}
+  .moneyPop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:34px;font-weight:900;color:#2d9a57;background:#fffdf7;border:3px solid #9ee6c5;border-radius:18px;padding:6px 12px;box-shadow:var(--shadow);z-index:31;animation:moneyUp .9s ease forwards;pointer-events:none;}
+  @keyframes moneyUp{0%{opacity:0;transform:translate(-50%,-35%) scale(.75)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-95%) scale(1)}}
+  .plate .foodSvg{width:58px;height:58px;}
+  .btnIcon{display:inline-flex;align-items:center;gap:6px;}
+  .btnIcon .foodSvg{width:28px;height:28px;}
+  .tinyIcon{width:22px;height:22px;display:inline-block;vertical-align:-5px;}
+  svg.foodSvg *{vector-effect:non-scaling-stroke;}
+  .previewGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;text-align:left}.previewBox{background:#fff7e8;border:3px solid #ffd9ad;border-radius:18px;padding:10px;font-weight:800}.previewBox b{color:#8b4a2c}.previewList{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.previewChip{display:inline-flex;align-items:center;gap:4px;background:white;border:2px solid #ffd39b;border-radius:14px;padding:4px 8px;font-size:13px}.previewChip .foodSvg{width:30px;height:30px}.previewOrder{display:inline-flex;align-items:center;background:white;border:2px solid #d7c9ff;border-radius:14px;padding:3px 5px}.previewOrder .foodSvg{width:32px;height:32px}.previewActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px}.cancelBtn{background:#fff;border-color:#c9d8e8;box-shadow:0 5px 0 #9fb5c8}.infoBtn{background:#fff8cc;border-color:#ffe28a;box-shadow:0 5px 0 #e6c85a}.levelBtn small{display:block;font-size:11px;color:#9a7154;margin-top:2px}
+@media (max-width: 760px){body{display:block;}#game{width:100vw;min-width:0;max-width:none;box-shadow:none;}.topbar{height:58px;padding:6px}.brand{font-size:17px}.hud{font-size:13px;gap:4px}.pill{padding:5px 6px}.incomePill{font-size:16px;padding:5px 7px}.incomePill #score{font-size:20px}.main{grid-template-rows:35% 25% 40%;}.orderBubble{top:-58px;font-size:22px;min-width:62px}.animal{font-size:44px}.customer{min-width:60px}.plates{max-width:76%;gap:6px}.plate{width:56px;height:56px;font-size:28px}.bunnyChef{font-size:44px;width:64px}.speech{font-size:13px;max-width:180px;padding:6px}.workshop{grid-template-columns:1fr;padding:8px}.sectionTitle{font-size:14px}button{font-size:14px;min-height:40px;padding:6px 8px}.machineName{font-size:14px}.card h1{font-size:26px}.card p{font-size:16px}.levelGrid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="topbar">
+    <div class="brand"><div class="bunnyLogo"></div>兔兔開心早午餐</div>
+    <div class="hud">
+      <div class="pill">第 <span id="levelNo">1</span> 關</div>
+      <div class="pill">⏰ <span id="time">60</span></div>
+      <div class="pill incomePill">💰 $<span id="score">0</span>/$<span id="target">100</span></div>
+      <div class="pill">🍬 <span id="candies">0</span></div>
+      <button id="soundToggle" class="soundBtn" title="音效開關">🔊</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="customers"><div class="sun"></div><div class="cloud"></div><div id="customerRow"></div></div>
+    <div class="truck"><div class="speech" id="speech">歡迎光臨！先做吐司吧！</div><div class="bunnyChef">🐰👩‍🍳</div><div class="plates" id="plates"></div></div>
+    <div class="workshop">
+      <div class="section"><div class="sectionTitle">現成食材／道具</div><div class="buttons" id="ingredients"></div></div>
+      <div class="section"><div class="sectionTitle">料理設備</div><div id="machines"></div></div>
+    </div>
+  </div>
+</div>
+<script>
+const RECIPES={
+  toast:{name:'吐司', need:['toast'], price:20},
+  cheese_toast:{name:'起司吐司', need:['toast','cheese'], price:35},
+  egg_toast:{name:'蛋吐司', need:['toast','egg'], price:40},
+  pancake:{name:'鬆餅', need:['pancake'], price:30},
+  coffee:{name:'咖啡', need:['coffee'], price:18},
+  milk:{name:'牛奶', need:['milk'], price:15}
+};
+const COMBO_ORDERS=[
+  {level:3, items:['toast','milk']},
+  {level:4, items:['cheese_toast','milk']},
+  {level:4, items:['cheese_toast','coffee']},
+  {level:6, items:['toast','coffee','milk']},
+  {level:8, items:['cheese_toast','milk','pancake']},
+  {level:8, items:['egg_toast','coffee','pancake']},
+  {level:9, items:['egg_toast','milk','pancake']}
+];
+const ITEMS={toast:['吐司'], cheese:['起司'], egg:['蛋'], pancake:['鬆餅'], coffee:['咖啡'], milk:['牛奶'], candy:['糖果']};
+
+function svgWrap(inner, cls='foodSvg'){
+  return `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true">${inner}</svg>`;
+}
+function dishSvg(items=[], cls='foodSvg'){
+  const list=items.slice();
+  const has=x=>list.includes(x);
+  // 單品飲料／糖果：不畫盤子，避免訂單看起來太擠。
+  if(has('coffee') && list.length===1) return svgWrap(`<ellipse cx="50" cy="78" rx="30" ry="6" fill="#d8c5b2" opacity=".45"/><path d="M28 38h42v27c0 12-9 19-21 19s-21-7-21-19z" fill="#fff8ed" stroke="#8b5a3c" stroke-width="5"/><path d="M69 46h9c8 0 8 17-1 17h-8" fill="none" stroke="#8b5a3c" stroke-width="5" stroke-linecap="round"/><path d="M35 42h28v15H35z" fill="#8a5a36" opacity=".9"/><path d="M40 25c-8-8 7-11 0-20M54 25c-8-8 7-11 0-20" fill="none" stroke="#c99b6a" stroke-width="4" stroke-linecap="round"/>`, cls);
+  if(has('milk') && list.length===1) return svgWrap(`<ellipse cx="50" cy="82" rx="25" ry="5" fill="#c7d9e8" opacity=".45"/><path d="M35 25h30l-5 58H40z" fill="#ffffff" stroke="#5e8eb0" stroke-width="5" stroke-linejoin="round"/><path d="M39 44h22l-3 34H42z" fill="#e9f7ff"/><path d="M39 20h22" stroke="#5e8eb0" stroke-width="6" stroke-linecap="round"/>`, cls);
+  if(has('candy') && list.length===1) return svgWrap(`<path d="M16 44l18-12v36L16 56zM84 44L66 32v36l18-12z" fill="#ffd36e" stroke="#8b5a3c" stroke-width="4" stroke-linejoin="round"/><rect x="32" y="31" width="36" height="38" rx="13" fill="#ff8db3" stroke="#8b5a3c" stroke-width="4"/><path d="M42 35c7 7 9 23 0 30M57 35c7 7 9 23 0 30" stroke="#fff7d6" stroke-width="5" stroke-linecap="round"/>`, cls);
+
+  let out=`<ellipse cx="50" cy="78" rx="40" ry="13" fill="#efe7ff" stroke="#b9a9ee" stroke-width="5"/><ellipse cx="50" cy="76" rx="27" ry="7" fill="#ffffff" opacity=".85"/>`;
+  if(has('pancake')){
+    out+=`<ellipse cx="50" cy="63" rx="30" ry="10" fill="#d9953f" stroke="#8b5a3c" stroke-width="3"/><ellipse cx="50" cy="56" rx="29" ry="10" fill="#f0b866" stroke="#8b5a3c" stroke-width="3"/><ellipse cx="50" cy="49" rx="27" ry="10" fill="#ffd080" stroke="#8b5a3c" stroke-width="3"/><rect x="43" y="38" width="16" height="10" rx="2" fill="#fff1a6" stroke="#c19131" stroke-width="2"/>`;
+  }
+  if(has('toast')){
+    out+=`<path d="M27 70V42c0-16 10-26 23-26s23 10 23 26v28z" fill="#f7b35f" stroke="#8b5a3c" stroke-width="5" stroke-linejoin="round"/><path d="M35 66V43c0-10 6-17 15-17s15 7 15 17v23z" fill="#ffe0a3" opacity=".9"/>`;
+  }
+  if(has('cheese') && has('toast')){
+    out+=`<path d="M33 43h34v22H33z" fill="#ffd94d" stroke="#c28a1a" stroke-width="3"/><circle cx="43" cy="53" r="4" fill="#fff09a"/><circle cx="58" cy="59" r="3" fill="#fff09a"/>`;
+  }
+  if(has('egg')){
+    out+=`<path d="M38 43c7-12 28-7 28 8 11 4 5 20-8 17-8 8-25 0-20-11-10-4-9-11 0-14z" fill="#fffaf0" stroke="#8b5a3c" stroke-width="3"/><circle cx="52" cy="55" r="9" fill="#ffc83d" stroke="#c7791f" stroke-width="3"/>`;
+  }
+  if(has('cheese') && !has('toast')){
+    out+=`<path d="M31 47h38v25H31z" fill="#ffd94d" stroke="#c28a1a" stroke-width="4"/><circle cx="43" cy="58" r="4" fill="#fff09a"/><circle cx="59" cy="65" r="3" fill="#fff09a"/>`;
+  }
+  return svgWrap(out, cls);
+}
+function btnLabel(item, text){return `<span class="btnIcon">${dishSvg([item])}<span>${text}</span></span>`;}
+
+const Sound={
+  ctx:null,
+  enabled:true,
+  unlocked:false,
+  // 音量集中管理：master 是總音量，其餘是各事件相對音量。
+  // 想整體調小：改 master。想調單一音效：改 volumes 裡的數值。
+  master:0.26,
+  volumes:{
+    button:0.16,
+    start:0.16,
+    ready:0.34,   // 機器完成：相對大聲一點
+    take:0.15,
+    place:0.13,
+    dish:0.20,
+    serve:0.24,
+    bonus:0.36,   // 保留給過關獎勵
+    cash:0.68,    // 完成客人訂單：清脆收銀機「叮」，最重要所以最大聲
+    wrong:0.13,
+    leave:0.10,
+    trash:0.11,
+    candy:0.16,
+    end:0.20
+  },
+  init(){
+    if(!this.enabled) return;
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC) return;
+    if(!this.ctx) this.ctx=new AC();
+    if(this.ctx.state==='suspended') this.ctx.resume();
+    this.unlocked=true;
+  },
+  toggle(){
+    this.enabled=!this.enabled;
+    if(this.enabled) this.init();
+    const b=document.getElementById('soundToggle');
+    if(b) b.textContent=this.enabled?'🔊':'🔇';
+    if(this.enabled) this.play('button');
+  },
+  getVolume(name, scale=1){
+    return (this.volumes[name] ?? 0.16) * this.master * scale;
+  },
+  tone(name, freq=440, dur=.12, type='sine', scale=1, delay=0){
+    if(!this.enabled) return;
+    this.init();
+    const ctx=this.ctx; if(!ctx) return;
+    const t=ctx.currentTime+delay;
+    const osc=ctx.createOscillator();
+    const g=ctx.createGain();
+    osc.type=type;
+    osc.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001,this.getVolume(name,scale)),t+.015);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t+dur+.03);
+  },
+  noise(name, dur=.08, scale=1, delay=0){
+    if(!this.enabled) return;
+    this.init();
+    const ctx=this.ctx; if(!ctx) return;
+    const t=ctx.currentTime+delay;
+    const buffer=ctx.createBuffer(1,Math.max(1,ctx.sampleRate*dur),ctx.sampleRate);
+    const data=buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*(1-i/data.length);
+    const src=ctx.createBufferSource(); src.buffer=buffer;
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(this.getVolume(name,scale),t);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    src.connect(g); g.connect(ctx.destination); src.start(t);
+  },
+  chord(name, notes, type='sine'){
+    notes.forEach(n=>this.tone(name,n.freq,n.dur,type,n.scale ?? 1,n.delay ?? 0));
+  },
+  play(name){
+    if(!this.enabled) return;
+    const s={
+      button:()=>this.tone('button',520,.055,'sine'),
+      start:()=>this.chord('start',[{freq:260,dur:.055,scale:.9},{freq:390,dur:.07,scale:.75,delay:.055}],'square'),
+      ready:()=>this.chord('ready',[{freq:880,dur:.12,scale:1.05},{freq:1175,dur:.15,scale:.95,delay:.10},{freq:1568,dur:.13,scale:.65,delay:.20}],'sine'),
+      take:()=>{this.tone('take',420,.06,'triangle'); this.noise('take',.035,.55,.02);},
+      place:()=>this.chord('place',[{freq:330,dur:.07,scale:.9},{freq:500,dur:.06,scale:.7,delay:.05}],'triangle'),
+      dish:()=>this.chord('dish',[{freq:660,dur:.08},{freq:880,dur:.09,delay:.075},{freq:1320,dur:.12,scale:.75,delay:.16}],'sine'),
+      serve:()=>this.chord('serve',[{freq:660,dur:.08},{freq:990,dur:.10,scale:.95,delay:.08}],'triangle'),
+      bonus:()=>this.chord('bonus',[{freq:784,dur:.08,scale:1.05},{freq:988,dur:.08,scale:1.05,delay:.08},{freq:1319,dur:.14,scale:1.0,delay:.16},{freq:1760,dur:.12,scale:.7,delay:.26}],'sine'),
+      cash:()=>{this.noise('cash',.025,.40,0); this.tone('cash',1175,.045,'square',.28,0); this.tone('cash',1760,.20,'sine',1.35,.025); this.tone('cash',2637,.18,'triangle',.85,.045); this.tone('cash',3520,.10,'sine',.45,.12);},
+      wrong:()=>this.chord('wrong',[{freq:230,dur:.10},{freq:180,dur:.13,scale:.75,delay:.10}],'sine'),
+      leave:()=>this.tone('leave',300,.18,'triangle'),
+      trash:()=>{this.tone('trash',150,.08,'square'); this.noise('trash',.08,.9,.02);},
+      candy:()=>this.chord('candy',[{freq:900,dur:.07},{freq:1200,dur:.12,scale:.9,delay:.08}],'sine'),
+      end:()=>[523,659,784,1047].forEach((f,i)=>this.tone('end',f,.16,'triangle',1,i*.11))
+    };
+    (s[name]||s.button)();
+  }
+}
+window.addEventListener('pointerdown',()=>Sound.init(),{once:true,passive:true});
+
+const LEVELS=[
+ {time:50,target:100,maxCust:2,recipes:['toast'],customers:['rabbit'],intro:'第 1 關：只要做吐司。每份餐點都會變成收入！'},
+ {time:55,target:140,maxCust:2,recipes:['toast','milk'],customers:['rabbit','bear'],intro:'第 2 關：新增牛奶。牛奶可以直接拿！'},
+ {time:60,target:190,maxCust:3,recipes:['toast','milk','cheese_toast'],customers:['rabbit','bear'],intro:'第 3 關：新增起司吐司。越複雜的餐點收入越高！'},
+ {time:65,target:250,maxCust:3,recipes:['toast','milk','cheese_toast','coffee'],customers:['rabbit','bear'],intro:'第 4 關：新增咖啡，也開始出現兩件套餐。'},
+ {time:70,target:320,maxCust:3,recipes:['toast','cheese_toast','coffee','egg_toast','milk'],customers:['rabbit','bear'],intro:'第 5 關：新增蛋吐司。套餐會有額外加成！'},
+ {time:75,target:400,maxCust:3,recipes:['toast','milk','coffee','egg_toast','pancake'],customers:['rabbit','bear'],intro:'第 6 關：新增鬆餅，可能會出現三件套餐。'},
+ {time:75,target:490,maxCust:4,recipes:['milk','coffee','cheese_toast','egg_toast','pancake','toast'],customers:['rabbit','bear','cat'],intro:'第 7 關：小貓常常想喝牛奶。'},
+ {time:80,target:590,maxCust:4,recipes:['toast','coffee','egg_toast','pancake','cheese_toast','milk'],customers:['rabbit','bear','cat','dog'],intro:'第 8 關：小狗喜歡鬆餅，三件套餐會更多。'},
+ {time:80,target:680,maxCust:4,recipes:['toast','milk','coffee','egg_toast','pancake','cheese_toast'],customers:['rabbit','bear','cat','dog'],candies:3,intro:'第 9 關：新增糖果。完成套餐可以得到更多收入！'},
+ {time:90,target:820,maxCust:5,recipes:['toast','milk','coffee','egg_toast','pancake','cheese_toast'],customers:['rabbit','bear','cat','dog'],candies:3,intro:'第 10 關：綜合挑戰。準備多份餐點，一次完成套餐！'}
+];
+const CUST={rabbit:{icon:'🐰',name:'小兔',pat:22,pref:[]},bear:{icon:'🐻',name:'小熊',pat:30,pref:[]},cat:{icon:'🐱',name:'小貓',pat:23,pref:['milk']},dog:{icon:'🐶',name:'小狗',pat:24,pref:['pancake']}};
+let state, timer, spawnTimer, loop, machines, lastVisualUpdate=0;
+function createStatsForLevel(levelIndex){
+  const stats={};
+  (LEVELS[levelIndex]?.recipes||[]).forEach(k=>stats[k]={sold:0, failed:0, burned:0});
+  return stats;
+}
+function ensureStat(recipeKey){
+  if(!state || !recipeKey) return null;
+  if(!state.stats) state.stats={};
+  if(!state.stats[recipeKey]) state.stats[recipeKey]={sold:0, failed:0, burned:0};
+  return state.stats[recipeKey];
+}
+function addStat(recipeKey, field, amount=1){
+  const st=ensureStat(recipeKey);
+  if(st && field in st) st[field]+=amount;
+}
+function recordOrderStats(order, field){
+  getOrderItems(order).forEach(k=>addStat(k, field, 1));
+}
+function recordBurn(machine){
+  if(machine && machine.burnRecipe) addStat(machine.burnRecipe, 'burned', 1);
+}
+function canBurnRecipe(recipeKey){
+  // 只有需要機器烹調的餐點才顯示燒焦數；飲料如牛奶、咖啡不顯示。
+  return ['toast','cheese_toast','egg_toast','pancake'].includes(recipeKey);
+}
+function statsTableHtml(){
+  const lv=LEVELS[state.level];
+  const keys=lv.recipes.slice();
+  return `<div class="statsWrap">${keys.map(k=>{
+    const st=state.stats?.[k]||{sold:0,failed:0,burned:0};
+    const burnHtml=canBurnRecipe(k)?`<span class="burnNum">燒焦 ${st.burned}</span>`:'';
+    return `<div class="statCard"><div class="statIcon">${dishSvg(RECIPES[k].need)}</div><div class="statName">${RECIPES[k].name}</div><div class="statNums"><span class="soldNum">成功 ${st.sold}</span><span class="failNum">失敗 ${st.failed}</span>${burnHtml}</div></div>`;
+  }).join('')}</div>`;
+}
+function initState(level=0){
+ state={level, time:LEVELS[level].time, score:0, selected:null, holding:null, plates:Array(6).fill(null), customers:[], nextId:1, running:true, combo:0, candyMode:false, candies:LEVELS[level].candies||0, levelStars:Array(10).fill(0), stats:createStatsForLevel(level)};
+ machines={toast:{name:'烤吐司機',action:'烤吐司',input:'bread',out:'toast',burnRecipe:'toast',dur:2600,burn:5200,status:'idle',start:0}, egg:{name:'平底鍋',action:'煎蛋',input:'raw_egg',out:'egg',burnRecipe:'egg_toast',dur:3000,burn:6000,status:'idle',start:0}, pancake:{name:'鬆餅機',action:'做鬆餅',input:'batter',out:'pancake',burnRecipe:'pancake',dur:3200,burn:6500,status:'idle',start:0}};
+ document.getElementById('levelNo').textContent=level+1; document.getElementById('target').textContent=LEVELS[level].target; document.getElementById('candies').textContent=state.candies;
+ setSpeech(LEVELS[level].intro); renderAll();
+ clearInterval(timer); clearInterval(spawnTimer); clearInterval(loop);
+ timer=setInterval(()=>{ if(!state.running)return; state.time--; if(state.time<=0)endLevel(); renderHUD(); },1000);
+ spawnTimer=setInterval(()=>{ if(state.running) maybeSpawn(); },1600);
+ loop=setInterval(update,120);
+ for(let i=0;i<Math.min(2,LEVELS[level].maxCust);i++) setTimeout(maybeSpawn, 500+i*900);
+}
+function setSpeech(t){document.getElementById('speech').textContent=t;}
+function toastMsg(t){let d=document.createElement('div');d.className='toast';d.textContent=t;document.getElementById('game').appendChild(d);setTimeout(()=>d.remove(),850);}
+function moneyMsg(amount){let d=document.createElement('div');d.className='moneyPop';d.textContent=`+$${amount}`;document.getElementById('game').appendChild(d);setTimeout(()=>d.remove(),900);}
+function renderHUD(){document.getElementById('time').textContent=state.time;document.getElementById('score').textContent=state.score;document.getElementById('candies').textContent=state.candies; const sb=document.getElementById('soundToggle'); if(sb && !sb.dataset.bound){sb.dataset.bound='1'; sb.onpointerdown=(e)=>{e.preventDefault(); e.stopPropagation(); Sound.toggle();};}}
+function renderAll(){renderHUD(); renderIngredients(); renderMachines(); renderPlates(); renderCustomers();}
+function renderIngredients(){
+ const lv=LEVELS[state.level], box=document.getElementById('ingredients'); box.innerHTML='';
+ const add=(txt,fn,locked=false)=>{let b=document.createElement('button');b.innerHTML=txt;if(locked)b.className='locked';b.onpointerdown=(e)=>{e.preventDefault(); Sound.play('button'); fn();};box.appendChild(b)};
+ if(lv.recipes.includes('cheese_toast')) add(btnLabel('cheese','起司'),()=>addPlate('cheese'));
+ if(lv.recipes.includes('coffee')) add(btnLabel('coffee','咖啡'),()=>addPlate('coffee'));
+ if(lv.recipes.includes('milk')) add(btnLabel('milk','牛奶'),()=>addPlate('milk'));
+ if(state.candies>0) add(btnLabel('candy','糖果安撫'),()=>{state.candyMode=true; state.selected=null; state.holding=null; renderPlates(); toastMsg('請點一位客人');});
+ add('🗑️ 丟掉選取盤',()=>discardSelected());
+}
+function renderMachines(){
+ const box=document.getElementById('machines'); box.innerHTML='';
+ Object.entries(machines).forEach(([key,m])=>{
+   if(key==='egg'&&!LEVELS[state.level].recipes.includes('egg_toast'))return;
+   if(key==='pancake'&&!LEVELS[state.level].recipes.includes('pancake'))return;
+   let div=document.createElement('div'); div.className='machine '+m.status;
+   let pct=0; if(m.status!=='idle') pct=Math.min(100,((Date.now()-m.start)/m.dur)*100);
+   div.innerHTML=`<div class="machineName">${m.name}</div><div class="progress"><span style="width:${pct}%"></span></div>`;
+   let btn=document.createElement('button'); btn.className='takeBtn '+m.status;
+   if(m.status==='idle'){
+     btn.textContent=m.action;
+     btn.onpointerdown=(e)=>{e.preventDefault(); Sound.play('button'); startMachine(key)};
+   } else if(m.status==='cook'){
+     btn.textContent='製作中'; btn.disabled=true;
+   } else if(m.status==='ready'){
+     btn.textContent='拿取'; btn.onpointerdown=(e)=>{e.preventDefault(); Sound.play('button'); takeMachine(key)};
+   } else {
+     btn.textContent='丟掉'; btn.onpointerdown=(e)=>{e.preventDefault(); Sound.play('trash'); m.status='idle';m.burnCounted=false;toastMsg('沒關係～再試一次');renderMachines();}
+   }
+   div.appendChild(btn); box.appendChild(div);
+ });
+}
+function renderPlates(){
+ const box=document.getElementById('plates'); box.innerHTML='';
+ state.plates.forEach((p,i)=>{
+   let d=document.createElement('div');
+   d.className='plate '+(state.selected===i?'selected':'')+(state.holding?' holdingTarget':'');
+   if(p){ d.innerHTML=dishSvg(p)+`<span class="small">${i+1}</span>`; d.title=recipeNameForPlate(p); }
+   else { d.textContent='盤'; d.style.opacity=.55; }
+   d.onpointerdown=(e)=>{e.preventDefault(); Sound.play('button'); clickPlate(i);};
+   box.appendChild(d);
+ });
+}
+function clickPlate(i){
+ const p=state.plates[i];
+ state.candyMode=false;
+ if(state.holding){
+   placeHeldOnPlate(i);
+   return;
+ }
+ if(!p){ state.selected=null; toastMsg('這是空盤子'); renderPlates(); return; }
+ const complete=Object.keys(RECIPES).some(k=>matchRecipe(p,k));
+ if(complete){
+   state.selected=(state.selected===i?null:i);
+   renderPlates();
+   return;
+ }
+ // 未完成的單一食材盤可拿起來，再點另一個盤子組合。
+ state.holding={items:p.slice(), source:i};
+ state.plates[i]=null;
+ state.selected=null;
+ toastMsg('拿起 '+p.map(x=>ITEMS[x]?.[0]||x).join('+'));
+ renderPlates();
+}
+function firstEmptyPlate(){return state.plates.findIndex(p=>!p);}
+function plateCount(){return state.plates.filter(Boolean).length;}
+function placeNewPlate(items){
+ const idx=firstEmptyPlate();
+ if(idx<0){toastMsg('盤子滿了！');return false;}
+ state.plates[idx]=items.slice();
+ state.selected=idx;
+ return true;
+}
+function placeHeldOnPlate(i){
+ const held=state.holding;
+ if(!held)return;
+ const current=state.plates[i];
+ if(!current){
+   state.plates[i]=held.items.slice();
+   state.selected=i;
+   state.holding=null;
+   Sound.play('place');
+   toastMsg(recipeNameForPlate(state.plates[i]));
+   renderPlates();
+   return;
+ }
+ const next=current.concat(held.items);
+ if(isRecipePrefix(next)){
+   state.plates[i]=next;
+   state.selected=i;
+   state.holding=null;
+   Sound.play(matchRecipe(next,'cheese_toast')||matchRecipe(next,'egg_toast')?'dish':'place');
+   toastMsg(recipeNameForPlate(next));
+   renderPlates();
+   return;
+ }
+ // 無法組合時，不要把牛奶、咖啡等套餐單品硬塞到吐司上。
+ // 例如「吐司＋牛奶」是套餐，應該是兩個盤子：一盤吐司、一盤牛奶。
+ // 如果玩家拿著新食材點到不相容的盤子，就自動放到空盤，避免誤以為失敗或把食材吃掉。
+ if(held.source==null){
+   const empty=firstEmptyPlate();
+   if(empty>=0){
+     state.plates[empty]=held.items.slice();
+     state.selected=empty;
+     state.holding=null;
+     Sound.play('place');
+     toastMsg('套餐要分盤，已放到空盤');
+     renderPlates();
+     return;
+   }
+   Sound.play('wrong');
+   toastMsg('這個要放另一個空盤喔');
+   renderPlates();
+   return;
+ }
+ // 從盤子拿起的食材若無法組合，放回原盤，避免誤丟。
+ if(held.source!=null && !state.plates[held.source]) state.plates[held.source]=held.items.slice();
+ state.holding=null;
+ Sound.play('wrong');
+ toastMsg('這樣不能組合喔');
+ renderPlates();
+}
+function renderCustomers(){
+ const row=document.getElementById('customerRow'); row.innerHTML='';
+ state.customers.forEach(c=>{
+   const orderItems=getOrderItems(c.order);
+   let div=document.createElement('div');
+   div.className='customer';
+   let w=Math.max(0,Math.floor(c.pat/c.maxPat*100));
+   let orderHtml=orderItems.map(k=>dishSvg(RECIPES[k].need)).join('');
+   let comboClass=orderItems.length>1?' combo':'';
+   const patienceClass = w > 50 ? 'green' : (w >= 20 ? 'yellow' : 'red');
+   div.innerHTML=`<div class="orderBubble${comboClass}">${orderHtml}</div><div class="animal">${c.icon}</div><div class="patience ${patienceClass}"><span style="width:${w}%"></span></div><div class="custName">${c.name}</div>`;
+   div.onpointerdown=(e)=>{e.preventDefault(); Sound.play('button'); clickCustomer(c.id);};
+   row.appendChild(div);
+ });
+}
+
+function getOrderItems(order){return Array.isArray(order)?order:[order];}
+function orderLabel(order){return getOrderItems(order).map(k=>RECIPES[k].name).join('＋');}
+function baseOrderPrice(order){return getOrderItems(order).reduce((sum,k)=>sum+(RECIPES[k]?.price||0),0);}
+function comboBonusRate(order){let n=getOrderItems(order).length; return n>=3?0.20:n===2?0.10:0;}
+function orderValue(order, patienceRatio=1){
+  const base=baseOrderPrice(order);
+  const combo=Math.round(base*comboBonusRate(order));
+  const tip=patienceRatio>.65?Math.round((base+combo)*0.20):patienceRatio>.35?Math.round((base+combo)*0.10):0;
+  return {base, combo, tip, total:base+combo+tip};
+}
+function possibleOrdersForLevel(){
+  const lv=LEVELS[state.level];
+  const singles=lv.recipes.map(x=>[x]);
+  const combos=COMBO_ORDERS.filter(o=>state.level+1>=o.level && o.items.every(x=>lv.recipes.includes(x))).map(o=>o.items);
+  return singles.concat(combos);
+}
+function findPlateForRecipe(recipeKey, used=new Set()){
+  for(let i=0;i<state.plates.length;i++){
+    if(used.has(i) || !state.plates[i]) continue;
+    if(matchRecipe(state.plates[i], recipeKey)) return i;
+  }
+  return -1;
+}
+function findPlatesForOrder(order){
+  const used=new Set(), indices=[];
+  for(const item of getOrderItems(order)){
+    const idx=findPlateForRecipe(item, used);
+    if(idx<0) return null;
+    used.add(idx); indices.push(idx);
+  }
+  return indices;
+}
+function normList(list){return list.slice().sort().join(',');}
+function isRecipePrefix(list){
+  const got=list.slice().sort();
+  return Object.values(RECIPES).some(r=>{
+    const need=r.need.slice().sort();
+    return got.every(x=>need.includes(x)) && got.length<=need.length;
+  });
+}
+function recipeNameForPlate(plate){
+  let key=Object.keys(RECIPES).find(k=>matchRecipe(plate,k));
+  return key?RECIPES[key].name:'料理中';
+}
+function addPlate(item){
+  Sound.play('place');
+  // 新邏輯：先拿起食材，再點指定盤子。
+  state.holding={items:[item], source:null};
+  state.selected=null;
+  toastMsg('請點一個盤子');
+  renderPlates();
+}
+function discardSelected(){
+  if(state.holding){
+    if(state.holding.source!=null && !state.plates[state.holding.source]) state.plates[state.holding.source]=state.holding.items.slice();
+    state.holding=null;
+    Sound.play('place');
+    toastMsg('放回來了');
+    renderPlates();
+    return;
+  }
+  if(state.selected==null || !state.plates[state.selected]){toastMsg('先點要丟掉的盤子');return;}
+  state.plates[state.selected]=null;
+  state.selected=null;
+  Sound.play('trash');
+  toastMsg('盤子清空了');
+  renderPlates();
+}
+function startMachine(key){let m=machines[key]; if(m.status!=='idle'){toastMsg('設備正在忙喔');Sound.play('wrong');return;} Sound.play('start'); m.status='cook';m.start=Date.now();m.readySound=false;m.burnCounted=false;renderMachines();}
+function takeMachine(key){
+  let m=machines[key];
+  // 烤好的東西會放到新的空盤，不會自動疊到同一盤。
+  if(!placeNewPlate([m.out])){return;}
+  m.status='idle';
+  m.burnCounted=false;
+  state.holding=null;
+  Sound.play('take');
+  toastMsg('放到新盤子了！');
+  renderMachines(); renderPlates();
+}
+function update(){
+ if(!state.running)return;
+ let now=Date.now();
+ Object.values(machines).forEach(m=>{
+   if(m.status==='cook'&&now-m.start>=m.dur){
+     m.status='ready';
+     if(!m.readySound){m.readySound=true; Sound.play('ready');}
+   }
+   if(m.status==='ready'&&now-m.start>=m.burn){
+     m.status='burn';
+     if(!m.burnCounted){m.burnCounted=true; recordBurn(m);}
+   }
+ });
+ state.customers.forEach(c=>c.pat-=0.12);
+ const leaving=state.customers.filter(c=>c.pat<=0);
+ if(leaving.length){
+   leaving.forEach(c=>recordOrderStats(c.order,'failed'));
+   state.combo=0;Sound.play('leave');toastMsg('下次再來～');
+ }
+ state.customers=state.customers.filter(c=>c.pat>0);
+ let now2=Date.now(); if(now2-lastVisualUpdate>250){lastVisualUpdate=now2; renderMachines(); renderCustomers();}
+}
+function maybeSpawn(){let lv=LEVELS[state.level]; if(state.customers.length>=lv.maxCust)return; if(Math.random()<0.62 || state.customers.length===0){
+ let ck=lv.customers[Math.floor(Math.random()*lv.customers.length)], base=CUST[ck];
+ let possible=possibleOrdersForLevel();
+ if(base.pref.length&&Math.random()<0.55){
+   const preferred=possible.filter(order=>getOrderItems(order).some(x=>base.pref.includes(x)));
+   if(preferred.length) possible=preferred;
+ }
+ let order=possible[Math.floor(Math.random()*possible.length)];
+ state.customers.push({id:state.nextId++,icon:base.icon,name:base.name,order,pat:base.pat,maxPat:base.pat}); renderCustomers(); }}
+function matchRecipe(plate, recipeKey){let need=RECIPES[recipeKey].need.slice().sort().join(','); let got=plate.slice().sort().join(','); return need===got;}
+function clickCustomer(id){let c=state.customers.find(x=>x.id===id); if(!c)return;
+ if(state.candyMode){ if(state.candies>0){c.pat=Math.min(c.maxPat,c.pat+9);state.candies--;state.candyMode=false;Sound.play('candy');toastMsg('客人變開心了！');renderHUD();renderIngredients();renderCustomers();} return;}
+ const matched=findPlatesForOrder(c.order);
+ if(matched){
+   const ratio=c.pat/c.maxPat;
+   const value=orderValue(c.order, ratio);
+   matched.forEach(i=>state.plates[i]=null);
+   recordOrderStats(c.order,'sold');
+   state.customers=state.customers.filter(x=>x.id!==id);
+   state.selected=null; state.combo++;
+   state.score+=value.total;
+   Sound.play('cash');
+   moneyMsg(value.total);
+   const comboText=getOrderItems(c.order).length>1?`套餐加成 $${value.combo}，`:'';
+   const tipText=value.tip?`小費 $${value.tip}！`:'';
+   toastMsg(`${comboText}${tipText || '謝謝你！'}`);
+   renderAll();
+   return;
+ }
+ Sound.play('wrong');
+ state.combo=0; c.pat-=2;
+ const need=orderLabel(c.order);
+ toastMsg(`還缺：${need}`);
+ renderCustomers();
+}
+function endLevel(){
+ if(!state.running) return;
+ // 時間到時仍在等待的客人不算失敗；只有耐心歸零離開的客人才會在 update() 中記錄失敗。
+ state.customers=[];
+ state.running=false;clearInterval(timer);clearInterval(spawnTimer);clearInterval(loop);
+ let lv=LEVELS[state.level];
+ let stars=state.score>=Math.round(lv.target*1.35)?3:state.score>=Math.round(lv.target*1.15)?2:state.score>=lv.target?1:0;
+ showEnd(stars);
+}
+function showEnd(stars){
+ Sound.play(stars?'end':'leave');
+ let div=document.createElement('div');div.className='modal';
+ let lv=LEVELS[state.level];
+ let passed=state.score>=lv.target;
+ let msg=stars?`今日收入 $${state.score}，目標 $${lv.target}，經營得很棒！`:`今日收入 $${state.score}，目標 $${lv.target}，再試一次一定更棒！`;
+ const nextDisabled=(state.level<9 && !passed);
+ const nextText=state.level<9?'下一關':'回選單';
+ div.innerHTML=`<div class="card"><h1>${stars?'太棒了！':'辛苦了！'}</h1><div class="stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div><p>${msg}</p>${statsTableHtml()}<button class="bigBtn" id="retry">再玩一次</button><button class="bigBtn ${nextDisabled?'disabled':''}" id="next">${nextText}</button></div>`;
+ document.getElementById('game').appendChild(div);
+ document.getElementById('retry').onpointerdown=(e)=>{e.preventDefault();Sound.play('button');div.remove();initState(state.level)};
+ const nextBtn=document.getElementById('next');
+ if(!nextDisabled){nextBtn.onpointerdown=(e)=>{e.preventDefault();Sound.play('button');div.remove(); if(state.level<9)initState(state.level+1); else showStart();};}
+}
+function levelOrderSamples(levelIndex){
+  const lv=LEVELS[levelIndex];
+  const singles=lv.recipes.map(x=>[x]);
+  const combos=COMBO_ORDERS.filter(o=>levelIndex+1>=o.level && o.items.every(x=>lv.recipes.includes(x))).map(o=>o.items);
+  return singles.concat(combos);
+}
+function orderPreviewHtml(order){
+  return `<span class="previewOrder" title="${orderLabel(order)}">${getOrderItems(order).map(k=>dishSvg(RECIPES[k].need)).join('')}</span>`;
+}
+function customerPreviewHtml(levelIndex){
+  return LEVELS[levelIndex].customers.map(k=>`<span class="previewChip">${CUST[k].icon} ${CUST[k].name}</span>`).join('');
+}
+function levelPreviewHtml(levelIndex){
+  const lv=LEVELS[levelIndex];
+  const orders=levelOrderSamples(levelIndex);
+  const combos=orders.filter(o=>getOrderItems(o).length>1);
+  const machines=[];
+  if(lv.recipes.includes('toast')) machines.push('烤吐司機');
+  if(lv.recipes.includes('egg_toast')) machines.push('平底鍋');
+  if(lv.recipes.includes('pancake')) machines.push('鬆餅機');
+  return `<h1>第 ${levelIndex+1} 關內容</h1>
+    <p>${lv.intro}</p>
+    <div class="previewGrid">
+      <div class="previewBox"><b>基本資料</b><br>⏰ 時長：${lv.time} 秒<br>💰 目標收入：$${lv.target}<br>👥 同時客人上限：${lv.maxCust}<br>🍬 糖果：${lv.candies||0} 顆</div>
+      <div class="previewBox"><b>設備</b><br>${machines.join('、') || '無'}<br><br><b>客人</b><div class="previewList">${customerPreviewHtml(levelIndex)}</div></div>
+    </div>
+    <div class="previewBox"><b>可能出現的餐點／套餐</b><div class="previewList">${orders.map(orderPreviewHtml).join('')}</div></div>
+    ${combos.length?`<div class="previewBox"><b>套餐提醒</b><div class="previewList">${combos.map(o=>`<span class="previewChip">${orderLabel(o)}（$${orderValue(o,1).base}+套餐加成）</span>`).join('')}</div></div>`:''}
+    <div class="previewActions"><button class="bigBtn" id="confirmStart">開始</button><button class="bigBtn cancelBtn" id="cancelPreview">取消</button></div>`;
+}
+function showLevelPreview(levelIndex, menuDiv){
+  Sound.play('button');
+  let div=document.createElement('div');
+  div.className='modal';
+  div.innerHTML=`<div class="card">${levelPreviewHtml(levelIndex)}</div>`;
+  document.getElementById('game').appendChild(div);
+  document.getElementById('confirmStart').onpointerdown=(e)=>{e.preventDefault();Sound.play('button');div.remove();menuDiv.remove();initState(levelIndex);};
+  document.getElementById('cancelPreview').onpointerdown=(e)=>{e.preventDefault();Sound.play('button');div.remove();};
+}
+function showStart(){
+ clearInterval(timer);clearInterval(spawnTimer);clearInterval(loop);
+ let div=document.createElement('div');div.className='modal';
+ div.innerHTML=`<div class="card"><h1>🐰 兔兔開心早午餐</h1><p>幫兔兔做早餐，賺取今日收入！<br>點選關卡後會先看到關卡資訊，按「開始」才正式進入遊戲。</p><div class="recipe"><b>小提醒：</b><br>套餐不要疊在同一盤，例如吐司＋牛奶，要做成一盤吐司和一盤牛奶，再點客人送出。<br>越複雜的餐點收入越高；套餐會有額外加成。</div><div class="levelGrid">${LEVELS.map((lv,i)=>`<button class="levelBtn" data-lv="${i}">第 ${i+1} 關<small>${lv.time} 秒／$${lv.target}</small></button>`).join('')}</div><p class="hint">適合滑鼠、手機與平板觸控。完成訂單時會有清脆的收銀機聲。</p></div>`;
+ document.getElementById('game').appendChild(div);
+ div.querySelectorAll('.levelBtn').forEach(b=>b.onpointerdown=(e)=>{e.preventDefault();let lv=+b.dataset.lv;showLevelPreview(lv,div);});
+}
+showStart();
+</script>
+</body>
+</html>
