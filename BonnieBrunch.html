@@ -96,7 +96,38 @@
   .tinyIcon{width:22px;height:22px;display:inline-block;vertical-align:-5px;}
   svg.foodSvg *{vector-effect:non-scaling-stroke;}
   .previewGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;text-align:left}.previewBox{background:#fff7e8;border:3px solid #ffd9ad;border-radius:18px;padding:10px;font-weight:800}.previewBox b{color:#8b4a2c}.previewList{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.previewChip{display:inline-flex;align-items:center;gap:4px;background:white;border:2px solid #ffd39b;border-radius:14px;padding:4px 8px;font-size:13px}.previewChip .foodSvg{width:30px;height:30px}.previewOrder{display:inline-flex;align-items:center;background:white;border:2px solid #d7c9ff;border-radius:14px;padding:3px 5px}.previewOrder .foodSvg{width:32px;height:32px}.previewActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px}.cancelBtn{background:#fff;border-color:#c9d8e8;box-shadow:0 5px 0 #9fb5c8}.infoBtn{background:#fff8cc;border-color:#ffe28a;box-shadow:0 5px 0 #e6c85a}.levelBtn small{display:block;font-size:11px;color:#9a7154;margin-top:2px}
-@media (max-width: 760px){body{display:block;}#game{width:100vw;min-width:0;max-width:none;box-shadow:none;}.topbar{height:58px;padding:6px}.brand{font-size:17px}.hud{font-size:13px;gap:4px}.pill{padding:5px 6px}.incomePill{font-size:16px;padding:5px 7px}.incomePill #score{font-size:20px}.main{grid-template-rows:35% 25% 40%;}.orderBubble{top:-58px;font-size:22px;min-width:62px}.animal{font-size:44px}.customer{min-width:60px}.plates{max-width:76%;gap:6px}.plate{width:56px;height:56px;font-size:28px}.bunnyChef{font-size:44px;width:64px}.speech{font-size:13px;max-width:180px;padding:6px}.workshop{grid-template-columns:1fr;padding:8px}.sectionTitle{font-size:14px}button{font-size:14px;min-height:40px;padding:6px 8px}.machineName{font-size:14px}.card h1{font-size:26px}.card p{font-size:16px}.levelGrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width: 760px){
+  body{display:block;overflow:hidden;}
+  #game{width:100vw;min-width:0;max-width:none;height:100dvh;box-shadow:none;}
+  .topbar{height:58px;padding:6px;gap:4px}.brand{font-size:16px;gap:6px}.bunnyLogo{width:34px;height:34px}.bunnyLogo:before,.bunnyLogo:after{width:10px;height:22px;top:-18px}.hud{font-size:12px;gap:3px}.pill{padding:4px 5px;border-width:2px}.incomePill{font-size:15px;padding:4px 6px}.incomePill #score{font-size:20px}.soundBtn{width:38px;min-height:34px;font-size:18px}
+  .main{grid-template-rows:35% 25% 40%;}
+  #customerRow{left:1%;right:1%;gap:3px;justify-content:space-around;bottom:6px;}
+  .customer{width:19%;min-width:0;max-width:none;}
+  .animal{font-size:42px;}
+  .custName{font-size:11px;padding:0 3px;}
+  .patience{width:86%;height:8px;margin:2px auto;}
+  .orderBubble{top:-54px;min-width:54px;min-height:40px;max-width:72px;padding:3px;border-width:2px;border-radius:12px;font-size:18px;gap:1px;box-shadow:0 4px 10px rgba(120,80,40,.14);}
+  .orderBubble:after{bottom:-8px;border-width:8px 6px 0 6px;}
+  .orderBubble .foodSvg{width:30px;height:30px;}
+  .orderBubble.combo{min-width:58px;max-width:74px;gap:0;padding:2px;}
+  .orderBubble.combo .foodSvg{width:25px;height:25px;}
+  .truck{gap:6px;justify-content:center;align-items:center;}
+  .bunnyChef{font-size:38px;width:48px;}
+  .speech{font-size:11px;max-width:112px;padding:4px 6px;left:4px;top:4px;border-width:2px;border-radius:12px;}
+  .plates{display:grid;grid-template-columns:repeat(3,54px);grid-auto-rows:54px;gap:6px;max-width:none;align-items:center;justify-content:center;margin-left:8px;}
+  .plate{width:54px;height:54px;font-size:26px;border-radius:14px;border-width:2px;box-shadow:0 3px 0 #b8a8ee;}
+  .plate.selected{outline:3px solid #ff8db3;transform:scale(1.04)}
+  .plate .foodSvg{width:45px;height:45px;}
+  .plate .small{font-size:11px;right:2px;bottom:1px;}
+  .workshop{grid-template-columns:1fr;padding:7px;gap:7px;}
+  .section{border-radius:16px;padding:6px;border-width:2px;}
+  .sectionTitle{font-size:13px;margin-bottom:4px}.buttons{gap:6px}button{font-size:13px;min-height:36px;padding:5px 7px;border-radius:14px;border-width:2px}.machine{padding:5px;margin-bottom:5px}.machineName{font-size:13px;min-width:64px}.progress{height:13px}.takeBtn{min-height:30px;font-size:12px;min-width:54px}
+  .toast{top:72px;left:50%;max-width:74vw;padding:7px 10px;font-size:16px;border-width:3px;border-radius:15px;line-height:1.25;box-shadow:0 5px 14px rgba(120,80,40,.18);}
+  .moneyPop{font-size:24px;padding:4px 8px;}
+  .modal{align-items:flex-start;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px;}
+  .card{width:96vw;max-width:96vw;max-height:calc(100dvh - 16px);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;border-width:4px;border-radius:22px;}
+  .card h1{font-size:24px}.card p{font-size:14px;line-height:1.45}.bigBtn{font-size:17px;min-height:42px;padding:9px 14px}.levelGrid{grid-template-columns:repeat(2,1fr);gap:7px}.recipe{font-size:12px;padding:8px;margin:8px auto}.previewGrid{grid-template-columns:1fr;gap:7px}.previewBox{padding:8px;border-width:2px;border-radius:14px;font-size:13px}.previewChip{font-size:12px;padding:3px 6px}.previewChip .foodSvg{width:24px;height:24px}.previewOrder .foodSvg{width:26px;height:26px}.statsWrap{grid-template-columns:1fr;max-height:42vh}.statCard{padding:6px;border-width:2px}.stars{font-size:32px;margin:8px;}
+}
 </style>
 </head>
 <body>
