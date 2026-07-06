@@ -134,7 +134,11 @@
   html, body{width:100%;height:100%;overflow:hidden;}
   body{display:block;}
   #game{width:100vw !important;min-width:0 !important;max-width:none !important;height:100svh;height:100dvh;box-shadow:none !important;border-radius:0;}
-  .main{grid-template-rows:34% 28% 38%;}
+  .main{grid-template-rows:28% 30% 42%;}
+
+  .sun{width:30px;height:30px;right:18px;top:12px;box-shadow:0 0 0 6px rgba(255,229,111,.22);}
+  .cloud{width:58px;height:20px;left:22px;top:14px;opacity:.72;}
+  .cloud:before{width:26px;height:26px;left:8px;top:-12px}.cloud:after{width:23px;height:23px;left:29px;top:-9px}
 
   /* 1) Preview / result modal must be scrollable on mobile */
   .modal{position:fixed;inset:0;align-items:flex-start !important;justify-content:center;overflow-y:auto !important;-webkit-overflow-scrolling:touch;padding:8px !important;overscroll-behavior:contain;}
@@ -153,25 +157,37 @@
   /* 2) Plates: exactly 2 rows x 3 columns on mobile */
   .truck{gap:4px;align-items:center;justify-content:center;padding:2px 4px;}
   .bunnyChef{font-size:34px;width:42px;flex:0 0 42px;}
-  .plates{display:grid !important;grid-template-columns:repeat(3,52px) !important;grid-template-rows:repeat(2,52px) !important;gap:6px !important;max-width:168px !important;width:168px !important;flex:0 0 168px;align-items:center;justify-content:center;margin:0 !important;}
-  .plate{width:52px !important;height:52px !important;border-radius:13px;border-width:2px;box-shadow:0 3px 0 #b8a8ee;}
-  .plate .foodSvg{width:43px;height:43px;}
+  .plates{display:grid !important;grid-template-columns:repeat(3,68px) !important;grid-template-rows:repeat(2,68px) !important;gap:7px !important;max-width:218px !important;width:218px !important;flex:0 0 218px;align-items:center;justify-content:center;margin:0 !important;}
+  .plate{width:68px !important;height:68px !important;border-radius:16px;border-width:2px;box-shadow:0 3px 0 #b8a8ee;}
+  .plate .foodSvg{width:56px;height:56px;}
   .plate .small{font-size:10px;right:1px;bottom:0;}
   .plate.selected{outline:3px solid #ff8db3;transform:scale(1.035);}
 
   /* 3) Customer order bubbles: smaller and spaced to avoid overlap */
-  #customerRow{left:1px !important;right:1px !important;gap:1px !important;justify-content:space-evenly !important;bottom:4px;}
-  .customer{width:19% !important;min-width:0 !important;max-width:none !important;}
-  .animal{font-size:39px !important;}
+  #customerRow{left:2px !important;right:2px !important;gap:4px !important;justify-content:space-evenly !important;bottom:5px;}
+  .customer{width:24% !important;min-width:0 !important;max-width:none !important;}
+  .animal{font-size:42px !important;}
   .custName{font-size:10px;padding:0 2px;}
   .patience{width:84%;height:7px;margin:1px auto 0;}
-  .orderBubble{top:-48px !important;min-width:46px !important;min-height:34px !important;max-width:60px !important;padding:2px !important;border-width:2px;border-radius:10px;gap:0 !important;}
+  .orderBubble{top:-56px !important;min-width:56px !important;min-height:42px !important;max-width:82px !important;padding:3px !important;border-width:2px;border-radius:12px;gap:1px !important;}
   .orderBubble:after{bottom:-7px;border-width:7px 5px 0 5px;}
-  .orderBubble .foodSvg{width:25px !important;height:25px !important;}
-  .orderBubble.combo{min-width:50px !important;max-width:62px !important;}
-  .orderBubble.combo .foodSvg{width:20px !important;height:20px !important;}
+  .orderBubble .foodSvg{width:30px !important;height:30px !important;}
+  .orderBubble.combo{min-width:62px !important;max-width:88px !important;}
+  .orderBubble.combo .foodSvg{width:24px !important;height:24px !important;}
 
-  /* 4) Toast/hint message: compact, top-right, not covering plates */
+  /* 4) Bigger workshop controls on mobile */
+  .workshop{padding:8px !important;gap:8px !important;}
+  .section{padding:8px !important;border-radius:18px;}
+  .sectionTitle{font-size:16px !important;margin-bottom:6px;}
+  .buttons{gap:8px !important;}
+  button{font-size:16px !important;min-height:44px !important;padding:7px 10px !important;border-radius:16px;}
+  .btnIcon .foodSvg{width:30px;height:30px;}
+  .machine{padding:7px !important;margin-bottom:7px !important;}
+  .machineName{font-size:16px !important;min-width:78px !important;}
+  .progress{height:16px !important;}
+  .takeBtn{font-size:15px !important;min-width:66px !important;min-height:36px !important;}
+
+  /* 5) Toast/hint message: compact, top-right, not covering plates */
   .toast{left:auto !important;right:8px !important;top:66px !important;transform:none !important;max-width:48vw !important;padding:6px 8px !important;font-size:13px !important;line-height:1.25;border-width:2px;border-radius:13px;text-align:center;box-shadow:0 5px 12px rgba(120,80,40,.18);}
   @keyframes pop{0%{opacity:0;transform:scale(.85)}20%{opacity:1;transform:scale(1.02)}80%{opacity:1}100%{opacity:0;transform:translateY(-12px) scale(1)}}
 }
@@ -235,10 +251,17 @@ function dishSvg(items=[], cls='foodSvg'){
     out+=`<ellipse cx="50" cy="63" rx="30" ry="10" fill="#d9953f" stroke="#8b5a3c" stroke-width="3"/><ellipse cx="50" cy="56" rx="29" ry="10" fill="#f0b866" stroke="#8b5a3c" stroke-width="3"/><ellipse cx="50" cy="49" rx="27" ry="10" fill="#ffd080" stroke="#8b5a3c" stroke-width="3"/><rect x="43" y="38" width="16" height="10" rx="2" fill="#fff1a6" stroke="#c19131" stroke-width="2"/>`;
   }
   if(has('toast')){
-    out+=`<path d="M27 70V42c0-16 10-26 23-26s23 10 23 26v28z" fill="#f7b35f" stroke="#8b5a3c" stroke-width="5" stroke-linejoin="round"/><path d="M35 66V43c0-10 6-17 15-17s15 7 15 17v23z" fill="#ffe0a3" opacity=".9"/>`;
-  }
-  if(has('cheese') && has('toast')){
-    out+=`<path d="M33 43h34v22H33z" fill="#ffd94d" stroke="#c28a1a" stroke-width="3"/><circle cx="43" cy="53" r="4" fill="#fff09a"/><circle cx="58" cy="59" r="3" fill="#fff09a"/>`;
+    if(has('cheese')){
+      // 起司吐司：去掉原本的粗棕框與中間長方形，改用大片黃色起司，讓它和純吐司一眼區分。
+      out+=`<path d="M28 70V43c0-15 10-25 22-25s22 10 22 25v27z" fill="#ffd28a" stroke="#e7a51f" stroke-width="2.5" stroke-linejoin="round"/>`;
+      out+=`<path d="M31 42h38v27H31z" fill="#ffd94d" stroke="#c28a1a" stroke-width="3"/><path d="M31 64c7-5 10 4 16 0s10-5 22 1v4H31z" fill="#ffc83d"/><circle cx="42" cy="53" r="4" fill="#fff09a"/><circle cx="58" cy="59" r="3" fill="#fff09a"/>`;
+    } else if(has('egg')){
+      // 蛋吐司：去掉粗框，保留大顆蛋圖案，用橘色細框和起司吐司區分。
+      out+=`<path d="M28 70V43c0-15 10-25 22-25s22 10 22 25v27z" fill="#ffe0a3" stroke="#ffa24d" stroke-width="2.5" stroke-linejoin="round"/>`;
+    } else {
+      // 純吐司：保留粗外框和中間麵包心，維持原本辨識感。
+      out+=`<path d="M27 70V42c0-16 10-26 23-26s23 10 23 26v28z" fill="#f7b35f" stroke="#8b5a3c" stroke-width="5" stroke-linejoin="round"/><path d="M35 66V43c0-10 6-17 15-17s15 7 15 17v23z" fill="#ffe0a3" opacity=".9"/>`;
+    }
   }
   if(has('egg')){
     out+=`<path d="M38 43c7-12 28-7 28 8 11 4 5 20-8 17-8 8-25 0-20-11-10-4-9-11 0-14z" fill="#fffaf0" stroke="#8b5a3c" stroke-width="3"/><circle cx="52" cy="55" r="9" fill="#ffc83d" stroke="#c7791f" stroke-width="3"/>`;
@@ -394,6 +417,13 @@ function statsTableHtml(){
     return `<div class="statCard"><div class="statIcon">${dishSvg(RECIPES[k].need)}</div><div class="statName">${RECIPES[k].name}</div><div class="statNums"><span class="soldNum">成功 ${st.sold}</span><span class="failNum">失敗 ${st.failed}</span>${burnHtml}</div></div>`;
   }).join('')}</div>`;
 }
+function isMobileGameLayout(){
+  return window.matchMedia && window.matchMedia('(max-width: 900px), (hover: none) and (pointer: coarse)').matches;
+}
+function effectiveMaxCust(level){
+  const base=LEVELS[level].maxCust;
+  return isMobileGameLayout()?Math.min(base,4):base;
+}
 function initState(level=0){
  state={level, time:LEVELS[level].time, score:0, selected:null, holding:null, plates:Array(6).fill(null), customers:[], nextId:1, running:true, combo:0, candyMode:false, candies:LEVELS[level].candies||0, levelStars:Array(10).fill(0), stats:createStatsForLevel(level)};
  machines={toast:{name:'烤吐司機',action:'烤吐司',input:'bread',out:'toast',burnRecipe:'toast',dur:2600,burn:5200,status:'idle',start:0}, egg:{name:'平底鍋',action:'煎蛋',input:'raw_egg',out:'egg',burnRecipe:'egg_toast',dur:3000,burn:6000,status:'idle',start:0}, pancake:{name:'鬆餅機',action:'做鬆餅',input:'batter',out:'pancake',burnRecipe:'pancake',dur:3200,burn:6500,status:'idle',start:0}};
@@ -403,7 +433,7 @@ function initState(level=0){
  timer=setInterval(()=>{ if(!state.running)return; state.time--; if(state.time<=0)endLevel(); renderHUD(); },1000);
  spawnTimer=setInterval(()=>{ if(state.running) maybeSpawn(); },1600);
  loop=setInterval(update,120);
- for(let i=0;i<Math.min(2,LEVELS[level].maxCust);i++) setTimeout(maybeSpawn, 500+i*900);
+ for(let i=0;i<Math.min(2,effectiveMaxCust(level));i++) setTimeout(maybeSpawn, 500+i*900);
 }
 function setSpeech(t){document.getElementById('speech').textContent=t;}
 function toastMsg(t){let d=document.createElement('div');d.className='toast';d.textContent=t;document.getElementById('game').appendChild(d);setTimeout(()=>d.remove(),850);}
@@ -649,7 +679,7 @@ function update(){
  state.customers=state.customers.filter(c=>c.pat>0);
  let now2=Date.now(); if(now2-lastVisualUpdate>250){lastVisualUpdate=now2; renderMachines(); renderCustomers();}
 }
-function maybeSpawn(){let lv=LEVELS[state.level]; if(state.customers.length>=lv.maxCust)return; if(Math.random()<0.62 || state.customers.length===0){
+function maybeSpawn(){let lv=LEVELS[state.level]; if(state.customers.length>=effectiveMaxCust(state.level))return; if(Math.random()<0.62 || state.customers.length===0){
  let ck=lv.customers[Math.floor(Math.random()*lv.customers.length)], base=CUST[ck];
  let possible=possibleOrdersForLevel();
  if(base.pref.length&&Math.random()<0.55){
@@ -730,7 +760,7 @@ function levelPreviewHtml(levelIndex){
   return `<h1>第 ${levelIndex+1} 關內容</h1>
     <p>${lv.intro}</p>
     <div class="previewGrid">
-      <div class="previewBox"><b>基本資料</b><br>⏰ 時長：${lv.time} 秒<br>💰 目標收入：$${lv.target}<br>👥 同時客人上限：${lv.maxCust}<br>🍬 糖果：${lv.candies||0} 顆</div>
+      <div class="previewBox"><b>基本資料</b><br>⏰ 時長：${lv.time} 秒<br>💰 目標收入：$${lv.target}<br>👥 同時客人上限：${effectiveMaxCust(levelIndex)}${isMobileGameLayout()&&lv.maxCust>4?'（手機版）':''}<br>🍬 糖果：${lv.candies||0} 顆</div>
       <div class="previewBox"><b>設備</b><br>${machines.join('、') || '無'}<br><br><b>客人</b><div class="previewList">${customerPreviewHtml(levelIndex)}</div></div>
     </div>
     <div class="previewBox"><b>可能出現的餐點／套餐</b><div class="previewList">${orders.map(orderPreviewHtml).join('')}</div></div>
@@ -749,7 +779,7 @@ function showLevelPreview(levelIndex, menuDiv){
 function showStart(){
  clearInterval(timer);clearInterval(spawnTimer);clearInterval(loop);
  let div=document.createElement('div');div.className='modal';
- div.innerHTML=`<div class="card"><h1>🐰 兔兔開心早午餐1</h1><p>幫兔兔做早餐，賺取今日收入！！<br>點選關卡後會先看到關卡資訊，按「開始」才正式進入遊戲。</p><div class="recipe"><b>小提醒：</b><br>套餐不要疊在同一盤，例如吐司＋牛奶，要做成一盤吐司和一盤牛奶，再點客人送出。<br>越複雜的餐點收入越高；套餐會有額外加成。</div><div class="levelGrid">${LEVELS.map((lv,i)=>`<button class="levelBtn" data-lv="${i}">第 ${i+1} 關<small>${lv.time} 秒／$${lv.target}</small></button>`).join('')}</div><p class="hint">適合滑鼠、手機與平板觸控。完成訂單時會有清脆的收銀機聲。</p></div>`;
+ div.innerHTML=`<div class="card"><h1>🐰 兔兔開心早午餐</h1><p>幫兔兔做早餐，賺取今日收入！<br>點選關卡後會先看到關卡資訊，按「開始」才正式進入遊戲。</p><div class="recipe"><b>小提醒：</b><br>套餐不要疊在同一盤，例如吐司＋牛奶，要做成一盤吐司和一盤牛奶，再點客人送出。<br>越複雜的餐點收入越高；套餐會有額外加成。</div><div class="levelGrid">${LEVELS.map((lv,i)=>`<button class="levelBtn" data-lv="${i}">第 ${i+1} 關<small>${lv.time} 秒／$${lv.target}</small></button>`).join('')}</div><p class="hint">適合滑鼠、手機與平板觸控。完成訂單時會有清脆的收銀機聲。</p></div>`;
  document.getElementById('game').appendChild(div);
  div.querySelectorAll('.levelBtn').forEach(b=>b.onpointerdown=(e)=>{e.preventDefault();let lv=+b.dataset.lv;showLevelPreview(lv,div);});
 }
