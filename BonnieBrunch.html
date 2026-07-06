@@ -749,7 +749,7 @@ function showLevelPreview(levelIndex, menuDiv){
 function showStart(){
  clearInterval(timer);clearInterval(spawnTimer);clearInterval(loop);
  let div=document.createElement('div');div.className='modal';
- div.innerHTML=`<div class="card"><h1>🐰 兔兔開心早午餐</h1><p>幫兔兔做早餐，賺取今日收入！<br>點選關卡後會先看到關卡資訊，按「開始」才正式進入遊戲。</p><div class="recipe"><b>小提醒：</b><br>套餐不要疊在同一盤，例如吐司＋牛奶，要做成一盤吐司和一盤牛奶，再點客人送出。<br>越複雜的餐點收入越高；套餐會有額外加成。</div><div class="levelGrid">${LEVELS.map((lv,i)=>`<button class="levelBtn" data-lv="${i}">第 ${i+1} 關<small>${lv.time} 秒／$${lv.target}</small></button>`).join('')}</div><p class="hint">適合滑鼠、手機與平板觸控。完成訂單時會有清脆的收銀機聲。</p></div>`;
+ div.innerHTML=`<div class="card"><h1>🐰 兔兔開心早午餐1</h1><p>幫兔兔做早餐，賺取今日收入！<br>點選關卡後會先看到關卡資訊，按「開始」才正式進入遊戲。</p><div class="recipe"><b>小提醒：</b><br>套餐不要疊在同一盤，例如吐司＋牛奶，要做成一盤吐司和一盤牛奶，再點客人送出。<br>越複雜的餐點收入越高；套餐會有額外加成。</div><div class="levelGrid">${LEVELS.map((lv,i)=>`<button class="levelBtn" data-lv="${i}">第 ${i+1} 關<small>${lv.time} 秒／$${lv.target}</small></button>`).join('')}</div><p class="hint">適合滑鼠、手機與平板觸控。完成訂單時會有清脆的收銀機聲。</p></div>`;
  document.getElementById('game').appendChild(div);
  div.querySelectorAll('.levelBtn').forEach(b=>b.onpointerdown=(e)=>{e.preventDefault();let lv=+b.dataset.lv;showLevelPreview(lv,div);});
 }
