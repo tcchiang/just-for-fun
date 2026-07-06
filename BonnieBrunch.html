@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>兔兔開心早午餐</title>
+<title>兔兔開心早午餐 mobile v4</title>
 <style>
   :root{
     --bg:#fff7e8; --panel:#fffdf7; --pink:#ff9fbc; --pink2:#ffd7e3; --mint:#aee8d7;
@@ -134,11 +134,11 @@
   html, body{width:100%;height:100%;overflow:hidden;}
   body{display:block;}
   #game{width:100vw !important;min-width:0 !important;max-width:none !important;height:100svh;height:100dvh;box-shadow:none !important;border-radius:0;}
-  .main{grid-template-rows:28% 30% 42%;}
+  .main{grid-template-rows:22% 30% 48%;}
 
-  .sun{width:30px;height:30px;right:18px;top:12px;box-shadow:0 0 0 6px rgba(255,229,111,.22);}
-  .cloud{width:58px;height:20px;left:22px;top:14px;opacity:.72;}
-  .cloud:before{width:26px;height:26px;left:8px;top:-12px}.cloud:after{width:23px;height:23px;left:29px;top:-9px}
+  .sun{width:24px;height:24px;right:16px;top:8px;box-shadow:0 0 0 5px rgba(255,229,111,.20);}
+  .cloud{width:46px;height:16px;left:18px;top:9px;opacity:.62;}
+  .cloud:before{width:21px;height:21px;left:6px;top:-10px}.cloud:after{width:18px;height:18px;left:24px;top:-7px}
 
   /* 1) Preview / result modal must be scrollable on mobile */
   .modal{position:fixed;inset:0;align-items:flex-start !important;justify-content:center;overflow-y:auto !important;-webkit-overflow-scrolling:touch;padding:8px !important;overscroll-behavior:contain;}
@@ -175,23 +175,25 @@
   .orderBubble.combo{min-width:62px !important;max-width:88px !important;}
   .orderBubble.combo .foodSvg{width:24px !important;height:24px !important;}
 
-  /* 4) Bigger workshop controls on mobile */
-  .workshop{padding:8px !important;gap:8px !important;}
-  .section{padding:8px !important;border-radius:18px;}
-  .sectionTitle{font-size:16px !important;margin-bottom:6px;}
-  .buttons{gap:8px !important;}
-  button{font-size:16px !important;min-height:44px !important;padding:7px 10px !important;border-radius:16px;}
+  /* 4) Bigger workshop controls on mobile, with enough vertical room for 3 machines */
+  .workshop{grid-template-columns:1fr !important;grid-template-rows:auto 1fr !important;padding:8px !important;gap:7px !important;overflow:hidden !important;min-height:0;}
+  .section{padding:7px !important;border-radius:18px;min-height:0;}
+  .sectionTitle{font-size:16px !important;margin-bottom:5px;}
+  .buttons{gap:7px !important;}
+  button{font-size:16px !important;min-height:42px !important;padding:7px 10px !important;border-radius:16px;}
   .btnIcon .foodSvg{width:30px;height:30px;}
-  .machine{padding:7px !important;margin-bottom:7px !important;}
+  #machines{display:flex;flex-direction:column;gap:6px;}
+  .machine{padding:6px !important;margin-bottom:0 !important;min-height:46px;}
   .machineName{font-size:16px !important;min-width:78px !important;}
   .progress{height:16px !important;}
-  .takeBtn{font-size:15px !important;min-width:66px !important;min-height:36px !important;}
+  .takeBtn{font-size:15px !important;min-width:66px !important;min-height:34px !important;}
 
   /* 5) Toast/hint message: compact, top-right, not covering plates */
   .toast{left:auto !important;right:8px !important;top:66px !important;transform:none !important;max-width:48vw !important;padding:6px 8px !important;font-size:13px !important;line-height:1.25;border-width:2px;border-radius:13px;text-align:center;box-shadow:0 5px 12px rgba(120,80,40,.18);}
   @keyframes pop{0%{opacity:0;transform:scale(.85)}20%{opacity:1;transform:scale(1.02)}80%{opacity:1}100%{opacity:0;transform:translateY(-12px) scale(1)}}
 }
 
+/* mobile-v4-equipment-fit */
 </style>
 </head>
 <body>
