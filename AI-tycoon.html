@@ -236,7 +236,7 @@ header .sub{font-size:12px;color:#c8d4e7;margin-top:2px}
       </select>
     </label>
     <label>初始資金
-      <input id="startMoney" type="number" value="15000" min="5000" step="1000">
+      <input id="startMoney" type="number" value="25000" min="5000" step="1000">
     </label>
     <label>玩家 1 名稱<input id="pname0" value="玩家 1"></label>
     <label>玩家 2 名稱<input id="pname1" value="玩家 2"></label>
@@ -289,7 +289,7 @@ header .sub{font-size:12px;color:#c8d4e7;margin-top:2px}
    1. 可調整遊戲參數
    ========================================================= */
 const GAME_CONFIG = {
-  startMoney: 15000,
+  startMoney: 25000,
   salary: 2000,
   maxUpgradeLevel: 5,
   bankruptcySellRate: 0.5,
@@ -475,7 +475,7 @@ let audioContext=null;
 
 function startGame(){
   const count=+document.getElementById("playerCount").value;
-  GAME_CONFIG.startMoney=+document.getElementById("startMoney").value || 15000;
+  GAME_CONFIG.startMoney=+document.getElementById("startMoney").value || 25000;
   players=Array.from({length:count},(_,i)=>({
     id:i,name:document.getElementById(`pname${i}`).value.trim()||`玩家 ${i+1}`,
     money:GAME_CONFIG.startMoney,pos:0,properties:[],levels:{},skip:0,bankrupt:false,
