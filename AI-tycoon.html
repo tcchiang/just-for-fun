@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Ecosystem Tycoon v0.10</title>
+
+<style>
+:root{
+  --bg:#eef3f8; --panel:rgba(255,255,255,.88); --ink:#142033; --muted:#66758a;
+  --line:#d8e1ec; --accent:#4f46e5; --good:#15803d; --bad:#b91c1c;
+  --shadow:0 14px 36px rgba(35,52,82,.13);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;color:var(--ink);font-family:"Segoe UI","Noto Sans TC",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%,rgba(99,102,241,.16),transparent 24%),
+    radial-gradient(circle at 88% 80%,rgba(14,165,233,.12),transparent 24%),
+    linear-gradient(135deg,#eaf0f8,#f8fbff 48%,#edf4fb);
+}
+button,select,input{font:inherit}
+button{cursor:pointer;border:0;border-radius:12px;padding:10px 15px;font-weight:800;transition:.18s ease}
+button:hover:not(:disabled){transform:translateY(-1px);filter:brightness(1.03)}
+button:disabled{cursor:not-allowed;opacity:.45}
+.primary{background:linear-gradient(135deg,#4f46e5,#6366f1);color:white;box-shadow:0 7px 16px rgba(79,70,229,.24)}
+.secondary{background:#e8eef6;color:#25344d}
+.good{background:#dcfce7;color:#166534}
+.warn{background:#fef3c7;color:#92400e}
+.danger{background:#fee2e2;color:#991b1b}
+header{
+  height:66px;padding:10px 18px;background:linear-gradient(105deg,#0d172b,#172844 65%,#21375a);
+  color:white;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  box-shadow:0 8px 24px rgba(15,23,42,.22);position:relative;z-index:20
+}
+header h1{font-size:20px;margin:0;letter-spacing:.2px}
+header .sub{font-size:12px;color:#c8d4e7;margin-top:2px}
+#app{
+  display:grid;grid-template-columns:minmax(780px,1fr) 345px;gap:11px;padding:10px;
+  max-width:1640px;margin:auto;height:calc(100vh - 66px);overflow:hidden
+}
+.board-wrap{
+  background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.85);
+  border-radius:22px;padding:8px;box-shadow:var(--shadow);min-height:0;height:100%;overflow:hidden
+}
+#board{
+  display:grid;grid-template-columns:repeat(13,1fr);grid-template-rows:repeat(7,1fr);
+  width:100%;height:100%;gap:4px;padding:4px;background:linear-gradient(135deg,#8290a3,#566477);
+  border:2px solid #45546a;border-radius:18px;overflow:hidden
+}
+.cell{
+  position:relative;background:#fff;min-width:0;padding:7px 5px 5px;border:1px solid rgba(15,23,42,.1);
+  display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;border-radius:7px;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;background-color .25s ease
+}
+.cell:hover{transform:translateY(-2px) scale(1.018);z-index:9;box-shadow:0 10px 20px rgba(15,23,42,.22);filter:saturate(1.06)}
+.cell .band{position:absolute;inset:0 0 auto 0;height:8px;background:var(--c,#94a3b8)}
+.cell .idx{position:absolute;right:4px;top:9px;font-size:7px;color:#9aa6b7}
+.cell .name{font-size:12px;font-weight:900;line-height:1.05;margin-top:7px;padding-left:29px;min-height:25px}
+.cell .brand-row{display:flex;align-items:flex-start;min-height:30px}
+.company-icon{
+  position:absolute;left:4px;top:11px;width:25px;height:25px;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--cat-c),color-mix(in srgb,var(--cat-c) 68%,#111827));
+  color:white;font-size:8px;font-weight:950;letter-spacing:-.2px;border:1px solid rgba(255,255,255,.7);
+  box-shadow:0 3px 7px rgba(15,23,42,.22)
+}
+.cell .owner{
+  font-size:10px;font-weight:900;color:#1e3a5f;line-height:1.08;white-space:normal;overflow:hidden;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:20px
+}
+.cell .fee-label{
+  font-size:7px;letter-spacing:.7px;text-transform:uppercase;font-weight:900;color:#8b98aa;margin-top:2px
+}
+.cell .meta{font-size:11px;color:#334155;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.special,.cell.event{
+  background:linear-gradient(145deg,#fbfcfe,#edf2f7);color:#26364c;text-align:center;align-items:center;
+  justify-content:center;padding-top:12px
+}
+.cell.special .name,.cell.event .name{padding-left:0;font-size:11px;min-height:auto;margin-top:2px}
+.special-icon{font-size:24px;line-height:1;margin:3px 0}
+.cell.special .meta,.cell.event .meta{font-size:8px;color:#718096}
+.tokens{display:flex;gap:3px;flex-wrap:wrap;min-height:23px;align-items:flex-end}
+.token{
+  width:25px;height:25px;border-radius:50%;border:2px solid white;box-shadow:0 3px 7px rgba(15,23,42,.45);
+  display:grid;place-items:center;color:white;font-size:11px;font-weight:950;transition:transform .16s ease
+}
+#center{
+  grid-column:2/13;grid-row:2/7;position:relative;overflow:hidden;
+  background:
+   linear-gradient(rgba(255,255,255,.46),rgba(255,255,255,.46)),
+   repeating-linear-gradient(0deg,transparent 0 25px,rgba(99,102,241,.07) 26px),
+   repeating-linear-gradient(90deg,transparent 0 25px,rgba(99,102,241,.07) 26px),
+   radial-gradient(circle at 30% 20%,rgba(99,102,241,.20),transparent 32%),
+   linear-gradient(145deg,#f9fbff,#e9eff7);
+  padding:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center
+}
+#center::before,#center::after{content:"";position:absolute;border-radius:50%;filter:blur(1px);pointer-events:none}
+#center::before{width:220px;height:220px;right:-60px;top:-70px;border:1px solid rgba(37,99,235,.16)}
+#center::after{width:160px;height:160px;left:-50px;bottom:-60px;border:1px solid rgba(124,58,237,.14)}
+.center-glass{
+  position:relative;z-index:2;width:min(620px,92%);padding:13px 18px;border-radius:20px;
+  background:rgba(255,255,255,.67);border:1px solid rgba(255,255,255,.9);
+  box-shadow:0 14px 35px rgba(62,81,112,.13);backdrop-filter:blur(12px)
+}
+#center h2{font-size:25px;margin:0 0 2px;letter-spacing:1px}
+#center p{margin:3px 0;color:#64748b}
+#dice{
+  font-size:67px;line-height:1;margin:8px auto;transition:color .2s ease,transform .09s ease;
+  text-shadow:0 0 22px var(--dice-glow,rgba(79,70,229,.32)),0 2px 0 rgba(255,255,255,.85)
+}
+#turnTitle{font-size:17px;font-weight:950}
+.legend{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:6px auto 7px}
+.legend-chip{
+  display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;background:rgba(248,250,252,.85);
+  border:1px solid #dbe4ef;font-size:9px;font-weight:800;color:#41516a;box-shadow:0 2px 6px rgba(15,23,42,.05)
+}
+.legend-dot{width:9px;height:9px;border-radius:50%;background:var(--lc)}
+.sidebar{display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden}
+.panel{
+  background:var(--panel);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.85);
+  border-radius:18px;padding:12px;box-shadow:var(--shadow);min-height:0
+}
+.panel h3{margin:0 0 9px;font-size:15px;display:flex;align-items:center;gap:6px}
+.players{display:grid;gap:7px}
+.player-card{
+  border:1px solid #e0e7f0;border-left:6px solid #cbd5e1;border-radius:13px;padding:9px 10px;
+  position:relative;background:rgba(255,255,255,.75);transition:.2s ease;overflow:hidden
+}
+.player-card.active{transform:translateX(-2px);box-shadow:0 9px 20px rgba(15,23,42,.12)}
+.turn-badge{
+  position:absolute;right:7px;top:6px;padding:2px 6px;border-radius:999px;color:white;font-size:7px;
+  font-weight:950;letter-spacing:.5px
+}
+.player-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-right:58px}
+.player-name{font-weight:950}
+.money{font-variant-numeric:tabular-nums;font-weight:950;font-size:14px}
+.small{font-size:11px;color:#64748b;margin-top:3px}
+#log{
+  height:118px;overflow:auto;background:linear-gradient(145deg,#101a2d,#182943);color:#dbeafe;
+  border-radius:12px;padding:10px;font-size:11px;line-height:1.52;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)
+}
+.guide{display:grid;gap:7px;max-height:275px;overflow:auto;padding-right:2px}
+.eco{border:1px solid #dbe3ee;border-radius:12px;padding:9px;background:rgba(255,255,255,.72);transition:.2s ease}
+.eco.done{border-width:2px;box-shadow:0 5px 13px rgba(15,23,42,.08)}
+.eco-title{display:flex;justify-content:space-between;font-weight:950;font-size:12px}
+.eco-companies,.eco-buff{font-size:10px;color:#64748b;margin-top:4px}
+.progress-track{height:6px;background:#e7edf5;border-radius:999px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:inherit;background:var(--pc,#94a3b8);transition:width .35s ease}
+.company-statuses{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.company-status{font-size:8px;padding:2px 5px;border-radius:999px;background:#edf2f7;color:#6b7280}
+.company-status.owned{color:white;background:var(--pc,#64748b)}
+.setup{max-width:780px;margin:40px auto;padding:20px}
+.setup-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.setup label{display:grid;gap:4px;font-size:12px;font-weight:700}
+.setup input,.setup select{padding:9px;border:1px solid #cbd5e1;border-radius:9px}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.66);display:none;place-items:center;z-index:50;padding:15px}
+.modal.open{display:grid}
+.modal-card{
+  width:min(570px,96vw);max-height:88vh;overflow:auto;background:rgba(255,255,255,.97);border-radius:20px;
+  padding:20px;box-shadow:0 30px 80px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.85)
+}
+.modal-card h2{margin:0 0 8px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.fact{padding:12px;background:#f1f5f9;border-left:5px solid #6366f1;border-radius:10px;margin-top:12px}
+.company-badge{display:inline-block;padding:5px 9px;border-radius:999px;color:white;font-weight:800;font-size:12px}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px;text-align:center}
+.stat b{display:block;font-size:16px}
+.config-note{margin-top:8px;padding:8px;background:#eff6ff;color:#1d4ed8;border-radius:8px;font-size:11px}
+.money-float{
+  position:fixed;z-index:1000;pointer-events:none;font-weight:950;font-size:26px;
+  text-shadow:0 2px 7px rgba(255,255,255,.95);animation:moneyUp 1.15s ease-out forwards
+}
+.money-float.negative{animation-name:moneyDown;color:#dc2626}
+.money-float.positive{color:#16a34a}
+@keyframes moneyUp{0%{opacity:0;transform:translate(-50%,10px) scale(.75)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-58px) scale(1.08)}}
+@keyframes moneyDown{0%{opacity:0;transform:translate(-50%,-8px) scale(.75)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,50px) scale(1.03)}}
+
+.title-with-icon{display:flex;align-items:center;justify-content:center;gap:12px}
+.title-ai-icon{
+  width:48px;height:48px;padding:8px;border-radius:15px;color:#4f46e5;
+  background:linear-gradient(145deg,#eef2ff,#fff);border:1px solid #dbe3ff;
+  box-shadow:0 8px 20px rgba(79,70,229,.16)
+}
+.svg-icon{display:inline-flex;align-items:center;justify-content:center}
+.svg-icon svg{width:100%;height:100%;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.company-icon svg{width:17px;height:17px}
+.panel-title-icon{
+  width:25px;height:25px;padding:5px;border-radius:8px;color:#52647e;
+  background:linear-gradient(145deg,#edf2f8,#fff);border:1px solid #dbe4ee;
+  box-shadow:0 3px 8px rgba(15,23,42,.07);flex:0 0 auto
+}
+.legend-icon{width:14px;height:14px;color:var(--lc)}
+
+@media(max-width:1100px){
+ #app{grid-template-columns:1fr;height:auto;overflow:visible}
+ .board-wrap{min-height:620px;height:72vh}
+ .sidebar{display:grid;grid-template-columns:repeat(2,1fr)}
+ .sidebar .panel:last-child{grid-column:1/-1}
+}
+@media(max-width:700px){
+ header{height:auto}
+ #app{padding:6px;gap:8px}
+ .board-wrap{padding:4px;min-height:520px;height:64vh}
+ #board{gap:2px;padding:2px}
+ .cell{padding:4px 2px 2px;border-radius:4px}
+ .cell .name{font-size:7px;padding-left:17px;min-height:17px}
+ .company-icon{width:15px;height:15px;border-radius:4px;left:2px;top:9px;font-size:5px}
+ .cell .owner{font-size:6px;min-height:12px}
+ .cell .meta{font-size:7px}
+ .cell .fee-label,.cell .idx{font-size:5px}
+ .special-icon{font-size:15px}
+ .cell.special .name,.cell.event .name{font-size:7px}
+ .token{width:14px;height:14px;font-size:6px}
+ .center-glass{width:96%;padding:8px}
+ #center h2{font-size:15px}
+ #center p{font-size:8px}
+ #dice{font-size:39px;margin:3px}
+ #turnTitle{font-size:11px}
+ .legend{gap:2px;margin:3px 0}
+ .legend-chip{font-size:6px;padding:2px 4px}
+ .sidebar{display:flex}
+ .setup-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="setupScreen" class="setup panel">
+  <h1>AI Ecosystem Tycoon</h1>
+  <p>以 AI 科技企業、產品升級與產業生態系為核心的本機多人紙上大富翁。</p>
+  <div class="setup-grid">
+    <label>玩家人數
+      <select id="playerCount">
+        <option value="2">2 人</option><option value="3">3 人</option><option value="4">4 人</option>
+      </select>
+    </label>
+    <label>初始資金
+      <input id="startMoney" type="number" value="15000" min="5000" step="1000">
+    </label>
+    <label>玩家 1 名稱<input id="pname0" value="玩家 1"></label>
+    <label>玩家 2 名稱<input id="pname1" value="玩家 2"></label>
+    <label>玩家 3 名稱<input id="pname2" value="玩家 3"></label>
+    <label>玩家 4 名稱<input id="pname3" value="玩家 4"></label>
+  </div>
+  <p class="config-note">第一版採本機輪流操作。遊戲數值集中在 HTML 中的 GAME_CONFIG、COMPANIES、ECOSYSTEMS 與 EVENT_CARDS，可直接修改。</p>
+  <button class="primary" style="margin-top:12px" onclick="startGame()">開始遊戲</button>
+</div>
+
+<div id="gameScreen" style="display:none">
+<header>
+  <div><h1>AI Ecosystem Tycoon <span style="font-size:12px;color:#a5b4fc">v0.10</span></h1>
+  <div class="sub">投資企業・升級產品・建立 AI Ecosystem</div></div>
+  <div><button class="secondary" onclick="location.reload()">重新開始</button></div>
+</header>
+<div id="app">
+  <section class="board-wrap">
+    <div id="board">
+      <div id="center">
+        <div class="center-glass">
+          <div class="title-with-icon">
+            <span class="title-ai-icon svg-icon" id="mainTitleIcon"></span>
+            <h2>AI ECOSYSTEM<br>TYCOON</h2>
+          </div>
+          <p id="turnTitle">準備開始</p>
+          <div class="legend" id="categoryLegend"></div>
+          <div id="dice">⚀</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+            <button id="rollBtn" class="primary" onclick="rollDice()">擲骰子</button>
+            <button id="manageBtn" class="secondary" onclick="openPortfolio()">我的投資</button>
+          </div>
+          <p class="small">最後仍有資產的玩家獲勝</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <aside class="sidebar">
+    <section class="panel"><h3><span class="panel-title-icon svg-icon" data-panel-icon="players"></span>玩家資產</h3><div id="players" class="players"></div></section>
+    <section class="panel"><h3><span class="panel-title-icon svg-icon" data-panel-icon="ecosystem"></span>AI 生態系組合</h3><div id="guide" class="guide"></div></section>
+    <section class="panel"><h3><span class="panel-title-icon svg-icon" data-panel-icon="log"></span>遊戲紀錄</h3><div id="log"></div></section>
+  </aside>
+</div>
+</div>
+
+<div id="modal" class="modal"><div id="modalCard" class="modal-card"></div></div>
+
+<script>
+/* =========================================================
+   1. 可調整遊戲參數
+   ========================================================= */
+const GAME_CONFIG = {
+  startMoney: 15000,
+  salary: 2000,
+  maxUpgradeLevel: 5,
+  bankruptcySellRate: 0.5,
+  ecosystemStartBonus: 300,
+  negativeEventReduction: 0.20
+};
+
+const CATEGORY_COLORS = {
+  model:"#7c3aed", cloud:"#2563eb", hardware:"#ea580c",
+  dev:"#059669", app:"#db2777", consumer:"#ca8a04",
+  event:"#64748b", special:"#334155"
+};
+
+/* =========================================================
+   2. 企業資料
+   price / upgradeCost / fees 都可直接調整
+   products[0] 代表投資後尚未升級；products[1..5] 為產品階段
+   ========================================================= */
+const COMPANIES = [
+ {id:"openai",name:"OpenAI",cat:"model",price:4000,upgradeCost:1200,fees:[300,600,1100,1800,2800,4200],
+  products:["Research Lab","GPT-3","GPT-3.5","GPT-4","GPT-4o","GPT-5"],
+  facts:["OpenAI 以 GPT 與 ChatGPT 推動生成式 AI 普及。","GPT 是 Generative Pre-trained Transformer 的縮寫。","OpenAI 與 Microsoft 在雲端算力與商業服務上有深度合作。"]},
+ {id:"anthropic",name:"Anthropic",cat:"model",price:3300,upgradeCost:1000,fees:[240,480,850,1400,2200,3300],
+  products:["AI Safety Lab","Claude 1","Claude 2","Claude 3","Claude 3.5","Claude 4"],
+  facts:["Anthropic 是 Claude 系列模型的開發者。","Anthropic 特別強調 AI 安全與可控性。","Claude 常被應用於寫作、分析與程式設計。"]},
+ {id:"deepmind",name:"Google DeepMind",cat:"model",price:3900,upgradeCost:1150,fees:[290,570,1050,1700,2650,4000],
+  products:["AI Research","AlphaGo","BERT","LaMDA","Gemini","Gemini Advanced"],
+  facts:["Google DeepMind 的研究涵蓋通用 AI、科學與醫療。","AlphaGo 曾擊敗世界頂尖圍棋棋士。","Gemini 是 Google 的多模態 AI 模型家族。"]},
+ {id:"meta",name:"Meta AI",cat:"model",price:3100,upgradeCost:950,fees:[220,450,800,1300,2050,3100],
+  products:["AI Research","PyTorch","Llama 1","Llama 2","Llama 3","Llama Next"],
+  facts:["Meta 推動 Llama 模型與開放式 AI 生態。","PyTorch 是廣受研究者使用的深度學習框架。","開放模型讓更多開發者能自行研究與部署 AI。"]},
+ {id:"xai",name:"xAI",cat:"model",price:2800,upgradeCost:900,fees:[190,390,700,1150,1800,2750],
+  products:["AI Lab","Grok 1","Grok 1.5","Grok 2","Grok 3","Grok Next"],
+  facts:["xAI 開發 Grok 系列模型。","xAI 強調即時資訊與大型運算基礎設施。","Grok 是 xAI 面向一般使用者的 AI 助理。"]},
+
+ {id:"microsoft",name:"Microsoft",cat:"cloud",price:3800,upgradeCost:1100,fees:[280,550,1000,1650,2550,3850],
+  products:["Azure","Azure AI","GitHub Copilot","Microsoft Copilot","Copilot Studio","AI Cloud"],
+  facts:["Microsoft 將 AI 整合進 Azure、Office 與開發工具。","Azure 是重要的企業雲端與 AI 運算平台。","Microsoft Copilot 被整合到多種生產力軟體。"]},
+ {id:"aws",name:"Amazon AWS",cat:"cloud",price:3500,upgradeCost:1050,fees:[260,510,920,1500,2350,3500],
+  products:["AWS","SageMaker","Trainium","Bedrock","Amazon Q","AI Cloud Suite"],
+  facts:["AWS 提供大量雲端運算與 AI 服務。","Amazon Bedrock 讓企業使用不同基礎模型。","SageMaker 是機器學習模型建置與部署平台。"]},
+ {id:"gcloud",name:"Google Cloud",cat:"cloud",price:3400,upgradeCost:1000,fees:[250,500,900,1450,2250,3400],
+  products:["Google Cloud","TPU Cloud","Vertex AI","Gemini API","AI Studio","Enterprise AI"],
+  facts:["Google Cloud 提供 TPU、Vertex AI 與 Gemini 服務。","Vertex AI 協助企業訓練與部署模型。","TPU 是 Google 為 AI 運算設計的專用晶片。"]},
+
+ {id:"nvidia",name:"NVIDIA",cat:"hardware",price:4200,upgradeCost:1250,fees:[320,650,1200,1950,3000,4500],
+  products:["GPU Platform","CUDA","A100","H100","Blackwell","AI Factory"],
+  facts:["NVIDIA 的 GPU 是現代 AI 訓練的重要算力來源。","CUDA 是 NVIDIA 的平行運算軟體平台。","NVIDIA 同時提供晶片、系統與 AI 軟體。"]},
+ {id:"amd",name:"AMD",cat:"hardware",price:2900,upgradeCost:900,fees:[200,400,730,1200,1850,2850],
+  products:["Compute","ROCm","MI100","MI250","MI300","Instinct Next"],
+  facts:["AMD 的 Instinct 系列是資料中心 AI 加速器。","ROCm 是 AMD 的 GPU 運算軟體平台。","AMD 與 NVIDIA 在高效能運算市場競爭。"]},
+ {id:"tsmc",name:"TSMC",cat:"hardware",price:3700,upgradeCost:1100,fees:[270,540,980,1600,2500,3750],
+  products:["Foundry","7nm","5nm","3nm","2nm","Advanced Packaging"],
+  facts:["台積電是全球重要的晶圓代工企業。","先進製程影響 AI 晶片的效能與能源效率。","許多 AI 晶片設計公司仰賴台積電製造晶片。"]},
+
+ {id:"github",name:"GitHub",cat:"dev",price:2700,upgradeCost:850,fees:[180,360,650,1050,1650,2500],
+  products:["Code Hosting","Actions","Copilot","Copilot Chat","Workspace","Agentic Dev"],
+  facts:["GitHub 是全球重要的程式碼協作平台。","GitHub Copilot 可在編輯器中協助撰寫程式。","GitHub Actions 可自動執行測試與部署流程。"]},
+ {id:"cursor",name:"Cursor",cat:"dev",price:2300,upgradeCost:750,fees:[150,300,540,880,1380,2100],
+  products:["AI Editor","Chat","Composer","Codebase Search","Agent Mode","AI IDE"],
+  facts:["Cursor 是以 AI 為核心的程式編輯器。","Cursor 能根據整個程式專案提供修改建議。","AI IDE 讓開發者用自然語言協助撰寫程式。"]},
+ {id:"huggingface",name:"Hugging Face",cat:"dev",price:2500,upgradeCost:800,fees:[165,330,600,980,1530,2300],
+  products:["Community","Transformers","Model Hub","Datasets","Spaces","Enterprise Hub"],
+  facts:["Hugging Face Model Hub 收藏大量模型與資料集。","Transformers 函式庫降低使用大型模型的門檻。","Hugging Face 是開源 AI 社群的重要平台。"]},
+ {id:"openrouter",name:"OpenRouter",cat:"dev",price:2100,upgradeCost:700,fees:[135,270,480,780,1220,1850],
+  products:["API Gateway","Multi-model API","Routing","Usage Analytics","Provider Network","AI Gateway"],
+  facts:["OpenRouter 讓開發者透過統一介面呼叫多種模型。","模型路由可依成本、速度或可用性選擇服務。","API 聚合平台降低整合不同模型供應商的難度。"]},
+
+ {id:"perplexity",name:"Perplexity",cat:"app",price:2400,upgradeCost:780,fees:[155,310,560,920,1430,2180],
+  products:["AI Search","Pro Search","Pages","Enterprise","Deep Research","Answer Engine"],
+  facts:["Perplexity 將生成式 AI 與網路搜尋結合。","AI 搜尋強調直接回答並提供資訊來源。","搜尋服務需要模型、索引與即時資料。"]},
+ {id:"notion",name:"Notion",cat:"app",price:2200,upgradeCost:720,fees:[140,280,500,820,1280,1950],
+  products:["Workspace","Notion AI","Q&A","Writing Assistant","Enterprise Search","AI Workspace"],
+  facts:["Notion AI 將寫作與知識管理整合在工作空間中。","企業可用 AI 搜尋內部文件與筆記。","生產力 AI 的價值來自融入日常工作流程。"]},
+ {id:"adobe",name:"Adobe",cat:"app",price:3000,upgradeCost:920,fees:[210,420,760,1250,1950,2950],
+  products:["Creative Cloud","Sensei","Firefly","Generative Fill","Video AI","Creative AI Suite"],
+  facts:["Adobe Firefly 用於生成與編輯視覺內容。","Generative Fill 能以文字指令修改圖片。","創意 AI 涉及生成內容、版權與內容來源等議題。"]},
+
+ {id:"apple",name:"Apple",cat:"consumer",price:3200,upgradeCost:980,fees:[230,460,830,1350,2100,3200],
+  products:["Siri","Neural Engine","Core ML","Apple Silicon","Apple Intelligence","Personal AI"],
+  facts:["Apple 將 AI 整合到手機、電腦與穿戴裝置。","Neural Engine 是 Apple 晶片中的 AI 運算單元。","裝置端 AI 可提升隱私與反應速度。"]},
+ {id:"tesla",name:"Tesla",cat:"consumer",price:3300,upgradeCost:1000,fees:[240,480,870,1420,2200,3350],
+  products:["Autopilot","FSD","Dojo","Vision AI","Optimus","Autonomous Platform"],
+  facts:["Tesla 將 AI 應用於駕駛輔助、視覺與機器人。","Dojo 是 Tesla 為大量影像資料訓練設計的系統。","自主系統必須結合感測、模型、算力與安全控制。"]}
+];
+
+/* =========================================================
+   3. Ecosystem 組合與效果
+   type 可用：rent、upgrade、startBonus、eventShield、creativeEvent
+   ========================================================= */
+const ECOSYSTEMS = [
+ {id:"compute",name:"AI Compute",companies:["tsmc","nvidia","microsoft"],
+  buff:"NVIDIA、TSMC 服務費 +10%",type:"rent",targets:["nvidia","tsmc"],value:.10},
+ {id:"assistant",name:"AI Assistant",companies:["openai","microsoft","notion"],
+  buff:"經過起點額外獲得 300",type:"startBonus",value:300},
+ {id:"coding",name:"AI Coding",companies:["github","cursor","openrouter"],
+  buff:"組合內公司升級成本 -15%",type:"upgrade",targets:["github","cursor","openrouter"],value:.15},
+ {id:"opensource",name:"Open Source AI",companies:["meta","huggingface"],
+  buff:"負面事件損失減少 20%",type:"eventShield",value:.20},
+ {id:"creative",name:"AI Creative",companies:["adobe","openai","deepmind"],
+  buff:"Adobe 服務費 +10%；創意事件獎勵 +20%",type:"rent",targets:["adobe"],value:.10},
+ {id:"search",name:"AI Search",companies:["deepmind","gcloud","perplexity"],
+  buff:"Google Cloud、Perplexity 升級成本 -15%",type:"upgrade",targets:["gcloud","perplexity"],value:.15},
+ {id:"autonomous",name:"Autonomous AI",companies:["tesla","xai","nvidia"],
+  buff:"Tesla 升級成本 -15%；服務費 +10%",type:"hybrid",targets:["tesla"],upgradeValue:.15,rentValue:.10}
+];
+
+/* =========================================================
+   4. 棋盤與事件
+   36 格，順時針排列。type: start/company/event/tax/rest/review/gotoReview
+   ========================================================= */
+const BOARD = [
+ {type:"start",name:"AI Innovation Hub"},
+ {type:"company",id:"notion"},{type:"event",deck:"trend",name:"科技趨勢"},
+ {type:"company",id:"openrouter"},{type:"tax",name:"資料中心電費",amount:500},
+ {type:"company",id:"cursor"},{type:"company",id:"github"},
+ {type:"event",deck:"news",name:"AI 新聞"},{type:"company",id:"huggingface"},
+ {type:"review",name:"AI Ethics Review"},
+ {type:"company",id:"meta"},{type:"event",deck:"trend",name:"科技趨勢"},
+ {type:"company",id:"xai"},{type:"company",id:"anthropic"},
+ {type:"tax",name:"資安維護費",amount:700},{type:"company",id:"openai"},
+ {type:"company",id:"deepmind"},{type:"event",deck:"news",name:"AI 新聞"},
+ {type:"rest",name:"Tech Conference"},
+ {type:"company",id:"perplexity"},{type:"company",id:"adobe"},
+ {type:"event",deck:"trend",name:"科技趨勢"},{type:"company",id:"apple"},
+ {type:"company",id:"tesla"},{type:"tax",name:"AI 法規合規費",amount:800},
+ {type:"company",id:"aws"},{type:"company",id:"gcloud"},
+ {type:"gotoReview",name:"Cybersecurity Incident"},
+ {type:"company",id:"microsoft"},{type:"event",deck:"news",name:"AI 新聞"},
+ {type:"company",id:"amd"},{type:"tax",name:"晶片供應鏈成本",amount:900},
+ {type:"company",id:"tsmc"},{type:"event",deck:"trend",name:"科技趨勢"},
+ {type:"company",id:"nvidia"},{type:"event",deck:"news",name:"AI 新聞"}
+];
+
+const EVENT_CARDS = [
+ {title:"GPU 需求上升",text:"生成式 AI 訓練帶動 GPU 需求。所有持有硬體公司的玩家獲得 300。",
+  effect:p=>gainByCategory("hardware",300)},
+ {title:"雲端價格競爭",text:"雲端服務降價。所有雲端公司擁有者支付 250。",
+  negative:true,effect:p=>payByCategory("cloud",250)},
+ {title:"開源模型熱潮",text:"開源社群快速成長。Meta AI 與 Hugging Face 擁有者各獲得 350。",
+  effect:p=>gainOwners(["meta","huggingface"],350)},
+ {title:"AI 監管加嚴",text:"模型公司需要增加合規成本。模型公司擁有者支付 200／家公司。",
+  negative:true,effect:p=>payPerOwnedCategory("model",200)},
+ {title:"企業導入 Copilot",text:"生產力工具需求提升。你獲得 500。",
+  effect:p=>changeMoney(p,500,"企業 AI 導入收益")},
+ {title:"模型 API 故障",text:"服務暫時中斷。你支付 400 維運費。",
+  negative:true,effect:p=>chargeWithShield(p,400,"API 維運費")},
+ {title:"AI 創作大賽",text:"若你持有 Adobe、OpenAI 或 Google DeepMind，獲得 450；否則獲得 150 參與獎。",
+  effect:p=>{const has=["adobe","openai","deepmind"].some(id=>p.properties.includes(id)); changeMoney(p,has?creativeBonus(p,450):150,"AI 創作大賽");}},
+ {title:"資料中心節能突破",text:"你下一次支付的稅金減半。",
+  effect:p=>{p.taxDiscount=true; log(`${p.name} 獲得下一次稅金減半。`)}},
+ {title:"新創募資成功",text:"你獲得 700 研究資金。",
+  effect:p=>changeMoney(p,700,"新創募資")},
+ {title:"資安事件",text:"你支付 600；若具有 Open Source AI，損失可降低。",
+  negative:true,effect:p=>chargeWithShield(p,600,"資安事件")},
+ {title:"人才競爭",text:"你支付 300 招募 AI 工程師。",
+  negative:true,effect:p=>chargeWithShield(p,300,"人才招募")},
+ {title:"模型效率提升",text:"你可立即任選一間自己的企業免費升級 1 級。",requiresChoice:true,
+  effect:p=>chooseFreeUpgrade(p)},
+ {title:"晶片短缺",text:"持有 NVIDIA、AMD、TSMC 的玩家各獲得 250。",
+  effect:p=>gainOwners(["nvidia","amd","tsmc"],250)},
+ {title:"訂閱成長",text:"你每持有一家應用公司，獲得 180。",
+  effect:p=>{const n=p.properties.filter(id=>company(id).cat==="app").length; changeMoney(p,n*180,"應用訂閱成長");}},
+ {title:"研究計畫通過",text:"你獲得 450。",
+  effect:p=>changeMoney(p,450,"研究計畫補助")},
+ {title:"模型訓練超支",text:"你支付 500。",
+  negative:true,effect:p=>chargeWithShield(p,500,"模型訓練超支")}
+];
+
+/* =========================================================
+   5. 遊戲狀態與核心引擎
+   ========================================================= */
+const PLAYER_COLORS=[
+ {strong:"#f97316",soft:"#ffedd5",border:"#fb923c",text:"#9a3412"},
+ {strong:"#2563eb",soft:"#dbeafe",border:"#60a5fa",text:"#1e3a8a"},
+ {strong:"#16a34a",soft:"#dcfce7",border:"#4ade80",text:"#166534"},
+ {strong:"#9333ea",soft:"#f3e8ff",border:"#c084fc",text:"#6b21a8"}
+];
+const TOKEN_COLORS=PLAYER_COLORS.map(c=>c.strong);
+let players=[],current=0,rolled=false,gameOver=false,reviewIndex=9;
+let resolvingEvent=false;
+let audioContext=null;
+
+function startGame(){
+  const count=+document.getElementById("playerCount").value;
+  GAME_CONFIG.startMoney=+document.getElementById("startMoney").value || 15000;
+  players=Array.from({length:count},(_,i)=>({
+    id:i,name:document.getElementById(`pname${i}`).value.trim()||`玩家 ${i+1}`,
+    money:GAME_CONFIG.startMoney,pos:0,properties:[],levels:{},skip:0,bankrupt:false,
+    freeUpgrade:false,taxDiscount:false
+  }));
+  document.getElementById("setupScreen").style.display="none";
+  document.getElementById("gameScreen").style.display="block";
+  renderBoard(); renderAll(); log("遊戲開始。每位玩家獲得 "+money(GAME_CONFIG.startMoney)+"。");
+  announceTurn();
+}
+
+function boardGridPos(index){
+  // 13 × 7 外圈共 36 格：底 13、左 5、頂 13、右 5。
+  if(index<=12) return {r:7,c:13-index};       // 右下（起點）→ 左下
+  if(index<=17) return {r:19-index,c:1};       // 左側向上，不重複角落
+  if(index<=30) return {r:1,c:index-17};       // 左上 → 右上
+  return {r:index-29,c:13};                    // 右側向下，不重複角落
+}
+
+
+const SVG_ICONS = {
+  ai:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4.5h6M9 19.5h6M4.5 9v6M19.5 9v6"/>
+    <rect x="6.5" y="6.5" width="11" height="11" rx="3"/>
+    <path d="M9.5 12h5M12 9.5v5"/>
+    <circle cx="12" cy="12" r="1.2"/>
+  </svg>`,
+  model:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M8.2 4.5a3 3 0 0 0-2.7 4.2A3.4 3.4 0 0 0 6.8 15a3 3 0 0 0 5.2 2V7a3 3 0 0 0-3.8-2.5Z"/>
+    <path d="M15.8 4.5a3 3 0 0 1 2.7 4.2 3.4 3.4 0 0 1-1.3 6.3 3 3 0 0 1-5.2 2V7a3 3 0 0 1 3.8-2.5Z"/>
+    <path d="M8 9.5h2M14 9.5h2M8.5 14h1.5M14 14h1.5"/>
+  </svg>`,
+  cloud:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M7 18h10.5a3.5 3.5 0 0 0 .7-6.9A6 6 0 0 0 6.6 9.5 4.3 4.3 0 0 0 7 18Z"/>
+    <path d="M9 14h6M12 11v6"/>
+  </svg>`,
+  hardware:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="6" y="6" width="12" height="12" rx="2"/>
+    <rect x="9" y="9" width="6" height="6" rx="1"/>
+    <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>
+  </svg>`,
+  dev:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>
+  </svg>`,
+  app:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="4" y="4" width="6" height="6" rx="1.5"/>
+    <rect x="14" y="4" width="6" height="6" rx="1.5"/>
+    <rect x="4" y="14" width="6" height="6" rx="1.5"/>
+    <rect x="14" y="14" width="6" height="6" rx="1.5"/>
+    <path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01"/>
+  </svg>`,
+  consumer:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="7" y="3" width="10" height="18" rx="2.5"/>
+    <path d="M10 6h4M11 18h2"/>
+    <path d="M18.5 8.5c1.5.8 2.5 2.3 2.5 4s-1 3.2-2.5 4"/>
+  </svg>`,
+  players:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="9" cy="8" r="3"/>
+    <circle cx="17" cy="9" r="2.3"/>
+    <path d="M3.5 19a5.5 5.5 0 0 1 11 0M14 19a4 4 0 0 1 7 0"/>
+  </svg>`,
+  ecosystem:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="5" r="2.5"/>
+    <circle cx="5" cy="17" r="2.5"/>
+    <circle cx="19" cy="17" r="2.5"/>
+    <path d="M10.7 7.2 6.3 14.8M13.3 7.2l4.4 7.6M7.5 17h9"/>
+  </svg>`,
+  log:`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <rect x="5" y="3" width="14" height="18" rx="2"/>
+    <path d="M8 8h8M8 12h8M8 16h5"/>
+    <path d="M9 3.5V2M15 3.5V2"/>
+  </svg>`
+};
+function svgIcon(name){return SVG_ICONS[name]||SVG_ICONS.ai}
+function renderStaticIcons(){
+  const title=document.getElementById("mainTitleIcon");
+  if(title)title.innerHTML=svgIcon("ai");
+  document.querySelectorAll("[data-panel-icon]").forEach(el=>{
+    el.innerHTML=svgIcon(el.dataset.panelIcon);
+  });
+}
+
+function companyAbbr(id){
+  return {
+    openai:"OA",anthropic:"AN",deepmind:"GDM",meta:"MA",xai:"xAI",
+    microsoft:"MS",aws:"AWS",gcloud:"GC",nvidia:"NV",amd:"AMD",tsmc:"TSMC",
+    github:"GH",cursor:"CU",huggingface:"HF",openrouter:"OR",
+    perplexity:"PX",notion:"NO",adobe:"AD",apple:"AP",tesla:"TS"
+  }[id]||id.slice(0,3).toUpperCase();
+}
+function specialIcon(space){
+  if(space.type==="start")return "🚀";
+  if(space.type==="event")return space.deck==="news"?"📰":"📈";
+  if(space.type==="tax")return "💳";
+  if(space.type==="review")return "⚖️";
+  if(space.type==="rest")return "🎤";
+  if(space.type==="gotoReview")return "🛡️";
+  return "◆";
+}
+function renderLegend(){
+  const items=[
+    ["model","基礎模型"],["cloud","雲端平台"],["hardware","硬體晶片"],
+    ["dev","開發工具"],["app","AI 應用"],["consumer","終端／自主"]
+  ];
+  document.getElementById("categoryLegend").innerHTML=items.map(([k,n])=>
+    `<span class="legend-chip"><span class="legend-icon svg-icon" style="--lc:${CATEGORY_COLORS[k]}">${svgIcon(k)}</span>${n}</span>`
+  ).join("");
+}
+
+function renderBoard(){
+  const board=document.getElementById("board");
+  board.querySelectorAll(".cell").forEach(e=>e.remove());
+  BOARD.forEach((space,i)=>{
+    const pos=boardGridPos(i),el=document.createElement("div");
+    el.className="cell "+(space.type==="company"?"company-cell":space.type==="event"?"event":"special");
+    el.style.gridRow=pos.r;el.style.gridColumn=pos.c;el.id=`cell-${i}`;
+    let color=CATEGORY_COLORS.special;
+
+    if(space.type==="company"){
+      const c=company(space.id); color="#94a3b8";
+      el.style.setProperty("--c",color);
+      el.style.setProperty("--cat-c",CATEGORY_COLORS[c.cat]);
+      el.innerHTML=`<div class="band"></div><div class="idx">${i}</div>
+        <div class="company-icon svg-icon">${svgIcon(c.cat)}</div>
+        <div class="name">${c.name}</div>
+        <div class="owner" id="owner-${i}">${c.products[0]}</div>
+        <div class="fee-label" id="fee-label-${i}">INVEST</div>
+        <div class="meta">${money(c.price)}</div>
+        <div class="tokens" id="tokens-${i}"></div>`;
+    }else{
+      color=space.type==="event"?CATEGORY_COLORS.event:CATEGORY_COLORS.special;
+      el.style.setProperty("--c",color);
+      const meta=space.type==="tax"?money(space.amount):(space.type==="event"?(space.deck==="news"?"AI NEWS":"TECH TREND"):"");
+      el.innerHTML=`<div class="band"></div><div class="idx">${i}</div>
+        <div class="special-icon">${specialIcon(space)}</div>
+        <div class="name">${space.name||""}</div><div class="meta">${meta}</div>
+        <div class="owner" id="owner-${i}"></div><div class="tokens" id="tokens-${i}"></div>`;
+    }
+    board.appendChild(el);
+  });
+  renderLegend();
+  renderStaticIcons();
+}
+function renderAll(){renderPlayers();renderTokens();renderOwnership();renderGuide();}
+function renderPlayers(){
+  document.getElementById("players").innerHTML=players.map((p,i)=>{
+    const ecosystems=getPlayerEcosystems(p),pc=PLAYER_COLORS[p.id],active=i===current&&!p.bankrupt;
+    return `<div class="player-card ${active?"active":""}"
+      style="border-left-color:${pc.strong};${active?`border-color:${pc.border};border-left-color:${pc.strong};background:linear-gradient(110deg,${pc.soft},rgba(255,255,255,.9))`:""}">
+      ${active?`<span class="turn-badge" style="background:${pc.strong}">CURRENT TURN</span>`:""}
+      <div class="player-head"><span class="player-name"><span style="color:${pc.strong}">●</span> ${p.name}</span>
+      <span class="money">${p.bankrupt?"已破產":money(p.money)}</span></div>
+      <div class="small">企業 ${p.properties.length} 家・Ecosystem ${ecosystems.length} 組${p.skip?`・審查 ${p.skip} 回合`:""}</div>
+    </div>`}).join("");
+}
+function renderTokens(){
+  BOARD.forEach((_,i)=>document.getElementById(`tokens-${i}`).innerHTML="");
+  players.filter(p=>!p.bankrupt).forEach((p,i)=>{
+    const t=document.createElement("div");t.className="token";t.style.background=TOKEN_COLORS[p.id];t.textContent=p.id+1;
+    document.getElementById(`tokens-${p.pos}`).appendChild(t);
+  });
+}
+function renderOwnership(){
+  BOARD.forEach((s,i)=>{
+    const productEl=document.getElementById(`owner-${i}`),cell=document.getElementById(`cell-${i}`);
+    if(!productEl||!cell)return;
+    if(s.type!=="company"){productEl.textContent="";return}
+    const c=company(s.id),owner=players.find(p=>p.properties.includes(s.id));
+    const metaEl=cell.querySelector(".meta"),feeLabel=document.getElementById(`fee-label-${i}`);
+    if(owner){
+      const level=owner.levels[s.id]||0,pc=PLAYER_COLORS[owner.id],rent=getRent(owner,c);
+      cell.style.setProperty("--c",pc.strong);
+      productEl.textContent=c.products[level];productEl.style.color=pc.text;
+      feeLabel.textContent="SERVICE FEE";feeLabel.style.color=pc.text;
+      metaEl.textContent=money(rent);metaEl.style.color=pc.text;
+      cell.style.background=`linear-gradient(145deg,${pc.soft},rgba(255,255,255,.9))`;
+      cell.style.boxShadow=`inset 0 0 0 2px ${pc.border}`;
+      cell.title=`${c.name}｜${c.products[level]}｜服務費 ${money(rent)}`;
+    }else{
+      cell.style.setProperty("--c","#94a3b8");
+      productEl.textContent=c.products[0];productEl.style.color="#475569";
+      feeLabel.textContent="INVEST";feeLabel.style.color="#8b98aa";
+      metaEl.textContent=money(c.price);metaEl.style.color="#334155";
+      cell.style.background="#fff";cell.style.boxShadow="none";
+      cell.title=`${c.name}｜${c.products[0]}｜投資價格 ${money(c.price)}`;
+    }
+  });
+}
+function renderGuide(){
+  const p=players[current];
+  document.getElementById("guide").innerHTML=ECOSYSTEMS.map(e=>{
+    const ownedIds=e.companies.filter(id=>p&&!p.bankrupt&&p.properties.includes(id));
+    const owned=ownedIds.length,done=owned===e.companies.length,pc=p?PLAYER_COLORS[p.id]:PLAYER_COLORS[0];
+    return `<div class="eco ${done?"done":""}" ${done?`style="border-color:${pc.border};background:linear-gradient(120deg,${pc.soft},rgba(255,255,255,.9))"`:""}>
+      <div class="eco-title"><span>${e.name}</span><span>${owned}/${e.companies.length}${done?" ✓":""}</span></div>
+      <div class="progress-track"><div class="progress-fill" style="--pc:${pc.strong};width:${owned/e.companies.length*100}%"></div></div>
+      <div class="company-statuses">${e.companies.map(id=>`<span class="company-status ${ownedIds.includes(id)?"owned":""}" style="--pc:${pc.strong}">${company(id).name}</span>`).join("")}</div>
+      <div class="eco-buff">效果：${e.buff}</div></div>`}).join("");
+}
+function announceTurn(){
+  if(gameOver)return;
+  const p=players[current];
+  document.getElementById("turnTitle").textContent=`${p.name} 的回合`;
+  const diceEl=document.getElementById("dice");
+  diceEl.style.color=PLAYER_COLORS[p.id].strong;
+  diceEl.style.setProperty("--dice-glow",PLAYER_COLORS[p.id].border+"88");
+  rolled=false;setButtons();
+  if(p.skip>0){
+    p.skip--; log(`${p.name} 正在接受 AI Ethics Review，本回合暫停行動。`);
+    setTimeout(()=>endTurn(true),500);
+  }
+}
+function setButtons(){
+  document.getElementById("rollBtn").disabled=rolled||gameOver||players[current]?.skip>0;
+}
+async function rollDice(){
+  if(rolled||gameOver)return;
+  rolled=true;setButtons();
+  const faces=["⚀","⚁","⚂","⚃","⚄","⚅"];
+  const diceEl=document.getElementById("dice");
+  const start=performance.now();
+  while(performance.now()-start<1500){
+    diceEl.textContent=faces[Math.floor(Math.random()*6)];
+    diceEl.style.transform=`rotate(${Math.floor(Math.random()*40-20)}deg) scale(${1+Math.random()*.15})`;
+    await sleep(90);
+  }
+  const d=Math.floor(Math.random()*6)+1;
+  diceEl.textContent=faces[d-1];diceEl.style.transform="none";
+  const p=players[current],old=p.pos;
+  log(`${p.name} 擲出 ${d}。`);
+  for(let step=1;step<=d;step++){
+    const next=(old+step)%BOARD.length;
+    if(next===0)receiveSalary(p);
+    p.pos=next;renderTokens();
+    const token=document.querySelector(`#tokens-${next} .token:last-child`);
+    if(token){token.style.transform="scale(1.25)";setTimeout(()=>token.style.transform="scale(1)",120)}
+    await sleep(200);
+  }
+  log(`${p.name} 移動到 ${spaceName(BOARD[p.pos])}。`);
+  await sleep(250);
+  resolveSpace();
+}
+function receiveSalary(p){
+  let amount=GAME_CONFIG.salary;
+  if(hasEco(p,"assistant"))amount+=ECOSYSTEMS.find(e=>e.id==="assistant").value;
+  changeMoney(p,amount,"經過 AI Innovation Hub");
+}
+function resolveSpace(){
+  const p=players[current],s=BOARD[p.pos];
+  if(s.type==="company")resolveCompany(p,company(s.id));
+  else if(s.type==="event")drawEvent(p);
+  else if(s.type==="tax")payTax(p,s);
+  else if(s.type==="gotoReview")sendToReview(p);
+  else if(s.type==="review")showSimple("AI Ethics Review","只是到訪，無須停留。",scheduleEndTurn);
+  else if(s.type==="rest")showSimple("Tech Conference","你參加科技交流活動，本回合安全休息。",scheduleEndTurn);
+  else if(s.type==="start")showSimple("AI Innovation Hub",`抵達起點，已獲得 ${money(GAME_CONFIG.salary)}。`,scheduleEndTurn);
+  checkBankruptcy(p);renderAll();
+}
+function resolveCompany(p,c){
+  const owner=players.find(x=>x.properties.includes(c.id));
+  const fact=c.facts[Math.floor(Math.random()*c.facts.length)];
+  if(!owner){
+    modal(`<span class="company-badge" style="background:${CATEGORY_COLORS[c.cat]}">${categoryName(c.cat)}</span>
+      <h2>${c.name}</h2><div class="fact"><b>AI 小知識</b><br>${fact}</div>
+      <div class="stat-grid"><div class="stat">投資價格<b>${money(c.price)}</b></div>
+      <div class="stat">基礎服務費<b>${money(c.fees[0])}</b></div>
+      <div class="stat">首項產品<b>${c.products[1]}</b></div></div>
+      <p>是否投資這家公司？</p>`,
+      [{text:"略過",cls:"secondary",fn:()=>{closeModal();scheduleEndTurn();}},
+       {text:`投資 ${money(c.price)}`,cls:"primary",disabled:p.money<c.price,fn:()=>buyCompany(p,c)}]);
+  }else if(owner.id===p.id){
+    const lv=p.levels[c.id]||0, max=GAME_CONFIG.maxUpgradeLevel;
+    const cost=getUpgradeCost(p,c);
+    modal(`<span class="company-badge" style="background:${CATEGORY_COLORS[c.cat]}">${categoryName(c.cat)}</span>
+      <h2>${c.name}</h2><div class="fact"><b>AI 小知識</b><br>${fact}</div>
+      <p>目前產品階段：<b>${c.products[lv]}</b>（Lv.${lv}）</p>
+      <div class="stat-grid"><div class="stat">目前服務費<b>${money(getRent(owner,c))}</b></div>
+      <div class="stat">升級成本<b>${p.freeUpgrade?"免費":money(cost)}</b></div>
+      <div class="stat">下一階段<b>${lv<max?c.products[lv+1]:"最高級"}</b><small>${lv<max?`服務費 ${money(c.fees[lv+1])}`:""}</small></div></div>`,
+      [{text:"關閉",cls:"secondary",fn:()=>{closeModal();scheduleEndTurn();}},
+       {text:lv>=max?"已達最高級":"升級產品",cls:"primary",disabled:lv>=max||(!p.freeUpgrade&&p.money<cost),fn:()=>upgradeCompany(p,c)}]);
+  }else{
+    const rent=getRent(owner,c);
+    modal(`<span class="company-badge" style="background:${CATEGORY_COLORS[c.cat]}">${categoryName(c.cat)}</span>
+      <h2>${c.name}</h2><div class="fact"><b>AI 小知識</b><br>${fact}</div>
+      <p>${owner.name} 持有此公司，產品階段為 <b>${c.products[owner.levels[c.id]||0]}</b>。</p>
+      <div class="stat-grid"><div class="stat">應付服務費<b>${money(rent)}</b></div></div>`,
+      [{text:`支付 ${money(rent)}`,cls:"danger",fn:()=>payRent(p,owner,c,rent)}]);
+  }
+}
+function buyCompany(p,c){
+  playSound("invest");
+  p.money-=c.price;showMoneyFloat(p,-c.price);p.properties.push(c.id);p.levels[c.id]=0;
+  closeModal();log(`${p.name} 投資 ${c.name}，支付 ${money(c.price)}。`);
+  const completed=checkNewEcosystems(p);renderAll();
+  if(completed.length){
+    const e=completed[0];
+    showSimple(`🎉 ${e.name} Complete!`,
+      `${e.companies.map(id=>company(id).name).join(" ＋ ")}<div class="fact"><b>Buff：</b>${e.buff}</div>`,scheduleEndTurn);
+  }else scheduleEndTurn();
+}
+function upgradeCompany(p,c){
+  const cost=getUpgradeCost(p,c);
+  if(p.freeUpgrade){p.freeUpgrade=false}else {p.money-=cost;playSound("invest");}
+  p.levels[c.id]=(p.levels[c.id]||0)+1;
+  const newFee=getRent(p,c);
+  closeModal();log(`${p.name} 將 ${c.name} 升級為 ${c.products[p.levels[c.id]]}，服務費提高為 ${money(newFee)}。`);
+  renderAll();scheduleEndTurn();
+}
+function payRent(p,owner,c,rent){
+  playSound("sad");
+  p.money-=rent;owner.money+=Math.min(rent,Math.max(0,p.money+rent));showMoneyFloat(p,-rent);showMoneyFloat(owner,Math.min(rent,Math.max(0,p.money+rent)));
+  closeModal();log(`${p.name} 向 ${owner.name} 支付 ${c.name} 服務費 ${money(rent)}。`);
+  checkBankruptcy(p);renderAll();scheduleEndTurn();
+}
+function drawEvent(p){
+  const card=EVENT_CARDS[Math.floor(Math.random()*EVENT_CARDS.length)];
+  modal(`<h2>📰 ${card.title}</h2><div class="fact">${card.text}</div>`,
+    [{text:"執行事件",cls:card.negative?"danger":"primary",fn:()=>{
+      closeModal();
+      resolvingEvent=true;
+      const waitsForChoice=card.effect(p)===false || card.requiresChoice;
+      resolvingEvent=false;
+      checkAllBankrupt();renderAll();
+      if(!waitsForChoice)scheduleEndTurn();
+    }}]);
+}
+function payTax(p,s){
+  let amount=s.amount;
+  if(p.taxDiscount){amount=Math.floor(amount/2);p.taxDiscount=false;}
+  changeMoney(p,-amount,s.name);
+  showSimple(s.name,`支付 ${money(amount)}。`,scheduleEndTurn);
+}
+function sendToReview(p){
+  p.pos=reviewIndex;p.skip=1;renderTokens();log(`${p.name} 發生資安事件，被送往 AI Ethics Review。`);
+  showSimple("Cybersecurity Incident","你被送往 AI Ethics Review，下一回合暫停行動。",scheduleEndTurn);
+}
+function endTurn(auto=false){
+  if(!rolled&&!auto)return;
+  closeModal();
+  checkAllBankrupt();
+  if(gameOver)return;
+  do{current=(current+1)%players.length}while(players[current].bankrupt);
+  renderAll();announceTurn();
+}
+function checkBankruptcy(p){
+  if(p.money>=0||p.bankrupt)return;
+  p.bankrupt=true;
+  p.money=0;
+  p.properties=[];
+  p.levels={};
+  log(`${p.name} 資金不足，已破產並退出遊戲。`);
+  checkAllBankrupt();
+}
+function checkAllBankrupt(){
+  players.forEach(p=>{
+    if(p.money<0&&!p.bankrupt){
+      p.bankrupt=true;p.money=0;p.properties=[];p.levels={};
+      log(`${p.name} 資金不足，已破產並退出遊戲。`);
+    }
+  });
+  const alive=players.filter(p=>!p.bankrupt);
+  if(alive.length<=1){
+    gameOver=true;renderAll();setButtons();
+    const w=alive[0];
+    modal(`<h2>🏆 遊戲結束</h2><p>${w?`恭喜 <b>${w.name}</b> 成為 AI Ecosystem Tycoon！`:"所有玩家均破產。"}</p>
+      <div class="fact">${players.map(p=>`${p.name}：${money(Math.max(0,p.money))}・${p.properties.length} 家企業`).join("<br>")}</div>`,
+      [{text:"重新開始",cls:"primary",fn:()=>location.reload()}]);
+  }
+}
+function openPortfolio(){
+  const p=players[current];
+  const rows=p.properties.length?p.properties.map(id=>{
+    const c=company(id),lv=p.levels[id]||0;
+    return `<div class="eco"><div class="eco-title"><span>${c.name}</span><span>Lv.${lv}</span></div>
+      <div class="eco-companies">${c.products[lv]}・服務費 ${money(getRent(p,c))}</div></div>`}).join(""):"<p>尚未投資任何公司。</p>";
+  modal(`<h2>${p.name} 的投資組合</h2>${rows}`, [{text:"關閉",cls:"secondary",fn:closeModal}]);
+}
+
+/* =========================================================
+   6. Buff 與工具函式
+   ========================================================= */
+function getRent(owner,c){
+  let rent=c.fees[owner.levels[c.id]||0];
+  ECOSYSTEMS.filter(e=>hasEco(owner,e.id)).forEach(e=>{
+    if(e.type==="rent"&&e.targets.includes(c.id))rent*=1+e.value;
+    if(e.type==="hybrid"&&e.targets.includes(c.id))rent*=1+e.rentValue;
+  });
+  return Math.floor(rent);
+}
+function getUpgradeCost(p,c){
+  let cost=c.upgradeCost;
+  ECOSYSTEMS.filter(e=>hasEco(p,e.id)).forEach(e=>{
+    if(e.type==="upgrade"&&e.targets.includes(c.id))cost*=1-e.value;
+    if(e.type==="hybrid"&&e.targets.includes(c.id))cost*=1-e.upgradeValue;
+  });
+  return Math.floor(cost);
+}
+function hasEco(p,id){const e=ECOSYSTEMS.find(x=>x.id===id);return e.companies.every(cid=>p.properties.includes(cid))}
+function getPlayerEcosystems(p){return ECOSYSTEMS.filter(e=>hasEco(p,e.id))}
+function checkNewEcosystems(p){
+  if(!p._announced)p._announced=[];
+  const completed=[];
+  getPlayerEcosystems(p).forEach(e=>{
+    if(!p._announced.includes(e.id)){
+      p._announced.push(e.id);completed.push(e);
+      log(`🎉 ${p.name} 完成 ${e.name}：${e.buff}`);
+    }
+  });
+  return completed;
+}
+function chooseFreeUpgrade(p){
+  const eligible=p.properties.filter(id=>(p.levels[id]||0)<GAME_CONFIG.maxUpgradeLevel);
+  if(!eligible.length){
+    log(`${p.name} 沒有可升級的企業，本事件沒有產生效果。`);
+    showSimple("模型效率提升","目前沒有可升級的企業。",scheduleEndTurn);
+    return false;
+  }
+  const options=eligible.map(id=>{
+    const c=company(id),lv=p.levels[id]||0;
+    return `<button class="secondary" style="width:100%;margin-top:8px;text-align:left" onclick="applyFreeUpgrade('${id}')">
+      <b>${c.name}</b>：${c.products[lv]} → ${c.products[lv+1]}（服務費 ${money(c.fees[lv])} → ${money(c.fees[lv+1])}）
+    </button>`;
+  }).join("");
+  modal(`<h2>免費升級一間企業</h2><p>請選擇要立即升級的企業：</p>${options}`,[]);
+  return false;
+}
+function applyFreeUpgrade(id){
+  const p=players[current],c=company(id),lv=p.levels[id]||0;
+  if(!p.properties.includes(id)||lv>=GAME_CONFIG.maxUpgradeLevel)return;
+  p.levels[id]=lv+1;
+  closeModal();
+  log(`${p.name} 免費將 ${c.name} 升級為 ${c.products[lv+1]}，服務費提高為 ${money(getRent(p,c))}。`);
+  renderAll();scheduleEndTurn();
+}
+function chargeWithShield(p,amount,label){
+  if(hasEco(p,"opensource"))amount=Math.floor(amount*(1-ECOSYSTEMS.find(e=>e.id==="opensource").value));
+  changeMoney(p,-amount,label);
+}
+function creativeBonus(p,base){return hasEco(p,"creative")?Math.floor(base*1.2):base}
+function gainByCategory(cat,amount){
+  players.filter(p=>!p.bankrupt&&p.properties.some(id=>company(id).cat===cat)).forEach(p=>changeMoney(p,amount,`${categoryName(cat)}產業成長`));
+}
+function payByCategory(cat,amount){
+  players.filter(p=>!p.bankrupt&&p.properties.some(id=>company(id).cat===cat)).forEach(p=>chargeWithShield(p,amount,`${categoryName(cat)}產業成本`));
+}
+function payPerOwnedCategory(cat,amount){
+  players.filter(p=>!p.bankrupt).forEach(p=>{
+    const n=p.properties.filter(id=>company(id).cat===cat).length;
+    if(n)chargeWithShield(p,n*amount,`${categoryName(cat)}合規成本`);
+  });
+}
+function gainOwners(ids,amount){
+  players.filter(p=>!p.bankrupt).forEach(p=>{
+    const ownedCount=ids.filter(id=>p.properties.includes(id)).length;
+    if(ownedCount>0)changeMoney(p,amount*ownedCount,`產業事件收益（${ownedCount} 家）`);
+  });
+}
+
+function showMoneyFloat(p,delta){
+  const card=document.querySelectorAll(".player-card")[p.id];
+  if(!card||delta===0)return;
+  const rect=card.getBoundingClientRect(),el=document.createElement("div");
+  el.className=`money-float ${delta>0?"positive":"negative"}`;
+  el.textContent=`${delta>0?"+":"-"}${money(Math.abs(delta))}`;
+  el.style.left=`${rect.left+rect.width*.68}px`;
+  el.style.top=`${rect.top+rect.height*.55}px`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1250);
+}
+
+function changeMoney(p,delta,label){
+  p.money+=delta;
+  showMoneyFloat(p,delta);
+
+  // 所有非企業格與事件造成的資金變動都在此統一播放音效。
+  // 公司投資／升級與支付其他玩家服務費仍由各自流程播放專屬音效。
+  if(delta>0)playSound("happy");
+  else if(delta<0)playSound("sad");
+
+  log(`${p.name} ${delta>=0?"獲得":"支付"} ${money(Math.abs(delta))}（${label}）。`);
+  checkBankruptcy(p);
+}
+/* 單檔合成音效：不需要外部 mp3/wav */
+function getAudioContext(){
+  if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();
+  if(audioContext.state==="suspended")audioContext.resume();
+  return audioContext;
+}
+function synthNote(freq,start,duration,type="sine",volume=.07){
+  const ctx=getAudioContext(),osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type=type;osc.frequency.setValueAtTime(freq,ctx.currentTime+start);
+  gain.gain.setValueAtTime(.0001,ctx.currentTime+start);
+  gain.gain.exponentialRampToValueAtTime(volume,ctx.currentTime+start+.015);
+  gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+start+duration);
+  osc.connect(gain);gain.connect(ctx.destination);
+  osc.start(ctx.currentTime+start);osc.stop(ctx.currentTime+start+duration+.03);
+}
+function playSound(kind){
+  try{
+    if(kind==="happy"){
+      synthNote(523.25,0,.16,"sine",.07);
+      synthNote(659.25,.13,.16,"sine",.07);
+      synthNote(783.99,.26,.24,"triangle",.08);
+    }else if(kind==="invest"){
+      synthNote(392,0,.10,"square",.045);
+      synthNote(523.25,.09,.12,"square",.05);
+      synthNote(659.25,.19,.17,"triangle",.065);
+    }else if(kind==="sad"){
+      synthNote(392,0,.20,"triangle",.065);
+      synthNote(329.63,.17,.22,"triangle",.06);
+      synthNote(261.63,.35,.34,"sine",.07);
+    }
+  }catch(err){console.warn("Audio unavailable",err);}
+}
+function scheduleEndTurn(){
+  if(gameOver)return;
+  setTimeout(()=>endTurn(true),450);
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+function company(id){return COMPANIES.find(c=>c.id===id)}
+function categoryName(cat){return {model:"基礎模型",cloud:"雲端平台",hardware:"硬體與晶片",dev:"開發工具",app:"AI 應用",consumer:"終端與自主系統"}[cat]||cat}
+function spaceName(s){return s.type==="company"?company(s.id).name:s.name}
+function money(n){return "$"+Math.floor(n).toLocaleString()}
+function log(msg){
+  const el=document.getElementById("log");el.innerHTML+=`<div>› ${msg}</div>`;el.scrollTop=el.scrollHeight;
+}
+function modal(content,buttons=[]){
+  document.getElementById("modalCard").innerHTML=content+`<div class="modal-actions" id="modalActions"></div>`;
+  const a=document.getElementById("modalActions");
+  buttons.forEach(b=>{const x=document.createElement("button");x.textContent=b.text;x.className=b.cls||"secondary";x.disabled=!!b.disabled;x.onclick=b.fn;a.appendChild(x)});
+  document.getElementById("modal").classList.add("open");
+}
+function closeModal(){document.getElementById("modal").classList.remove("open")}
+function showSimple(title,text,onClose=closeModal){
+  modal(`<h2>${title}</h2><p>${text}</p>`,[{text:"確定",cls:"primary",fn:()=>{closeModal();onClose();}}])
+}
+</script>
+</body>
+</html>
